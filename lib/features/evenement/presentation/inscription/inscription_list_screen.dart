@@ -1,38 +1,33 @@
 import 'package:flutter/material.dart';
 
-import '../../models/categorie.dart';
-import '../../models/evenement.dart';
-import '../../models/inscription.dart';
-import '../../models/paiement_evenement.dart';
-import '../../repositories/categorie_repository.dart';
-import '../../repositories/evenement_repository.dart';
-import '../../repositories/inscription_repository.dart';
-import '../../repositories/paiement_evenement_repository.dart';
-import '../../../../../core/utils/outils.dart';
-import 'paiement_form_screen.dart';
+import '../../data/models/categorie.dart';
+import '../../data/models/evenement.dart';
+import '../../data/models/inscription.dart';
+import '../../data/repositories/categorie_repository.dart';
+import '../../data/repositories/evenement_repository.dart';
+import '../../data/repositories/inscription_repository.dart';
+import '../../../../core/utils/outils.dart';
+import 'inscription_form_screen.dart';
 
-class PaiementListScreen extends StatefulWidget {
+class InscriptionListScreen extends StatefulWidget {
   // integre = true : affiché dans un TabBarView ou sous un
   // BottomNavigationBar, donc sans son propre Scaffold/AppBar.
   final bool integre;
 
-  const PaiementListScreen({
+  const InscriptionListScreen({
     super.key,
     this.integre = false,
   });
 
   @override
-  State<PaiementListScreen> createState() => _PaiementListScreenState();
+  State<InscriptionListScreen> createState() => _InscriptionListScreenState();
 }
 
-class _PaiementListScreenState extends State<PaiementListScreen> {
-  PaiementEvenementRepository paiementRepository =
-  PaiementEvenementRepository();
+class _InscriptionListScreenState extends State<InscriptionListScreen> {
   InscriptionRepository inscriptionRepository = InscriptionRepository();
   EvenementRepository evenementRepository = EvenementRepository();
   CategorieRepository categorieRepository = CategorieRepository();
 
-  List<PaiementEvenement> paiements = [];
   List<Inscription> inscriptions = [];
   List<Evenement> evenements = [];
   List<Categorie> categories = [];
@@ -45,9 +40,6 @@ class _PaiementListScreenState extends State<PaiementListScreen> {
 
   Future<void> chargerDonnees() async {
     try {
-      List<PaiementEvenement> resultatPaiements =
-      await paiementRepository.getPaiements();
-
       List<Inscription> resultatInscriptions =
       await inscriptionRepository.getInscriptions();
 
@@ -62,7 +54,6 @@ class _PaiementListScreenState extends State<PaiementListScreen> {
       }
 
       setState(() {
-        paiements = resultatPaiements;
         inscriptions = resultatInscriptions;
         evenements = resultatEvenements;
         categories = resultatCategories;
@@ -74,19 +65,9 @@ class _PaiementListScreenState extends State<PaiementListScreen> {
     }
   }
 
-  Inscription? trouverInscription(String id) {
-    for (Inscription inscription in inscriptions) {
-      if (inscription.idInscription == id) {
-        return inscription;
-      }
-    }
-
-    return null;
-  }
-
-  String nomEvenement(String id) {
+  String nomEvenement(String idEvenement) {
     for (Evenement evenement in evenements) {
-      if (evenement.idEvenement == id) {
+      if (evenement.idEvenement == idEvenement) {
         return evenement.nom;
       }
     }
@@ -94,9 +75,9 @@ class _PaiementListScreenState extends State<PaiementListScreen> {
     return 'Événement inconnu';
   }
 
-  String nomCategorie(String id) {
+  String nomCategorie(String idCategorie) {
     for (Categorie categorie in categories) {
-      if (categorie.idCategorie == id) {
+      if (categorie.idCategorie == idCategorie) {
         return categorie.nom;
       }
     }
@@ -106,7 +87,7 @@ class _PaiementListScreenState extends State<PaiementListScreen> {
 
   Future<void> supprimer(String id) async {
     try {
-      await paiementRepository.supprimer(id);
+      await inscriptionRepository.supprimer(id);
       await chargerDonnees();
     } catch (erreur) {
       if (mounted) {
@@ -115,11 +96,11 @@ class _PaiementListScreenState extends State<PaiementListScreen> {
     }
   }
 
-  Future<void> ouvrirFormulaire(PaiementEvenement? paiement) async {
+  Future<void> ouvrirFormulaire(Inscription? inscription) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PaiementFormScreen(paiement: paiement),
+        builder: (context) => InscriptionFormScreen(inscription: inscription),
       ),
     );
 
@@ -130,7 +111,7 @@ class _PaiementListScreenState extends State<PaiementListScreen> {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       // +1 : la première ligne est le bouton "Ajouter".
-      itemCount: paiements.length + 1,
+      itemCount: inscriptions.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
           return Container(
@@ -139,24 +120,12 @@ class _PaiementListScreenState extends State<PaiementListScreen> {
               onPressed: () {
                 ouvrirFormulaire(null);
               },
-              child: const Text('Ajouter un paiement'),
+              child: const Text('Ajouter une inscription'),
             ),
           );
         }
 
-        PaiementEvenement paiement = paiements[index - 1];
-
-        Inscription? inscription = trouverInscription(paiement.idInscription);
-
-        String evenement = 'Événement inconnu';
-        String categorie = 'Catégorie inconnue';
-        String athlete = 'Athlète inconnu';
-
-        if (inscription != null) {
-          evenement = nomEvenement(inscription.idEvenement);
-          categorie = nomCategorie(inscription.idCategorie);
-          athlete = inscription.idAthlete;
-        }
+        Inscription inscription = inscriptions[index - 1];
 
         return Card(
           child: Container(
@@ -166,17 +135,17 @@ class _PaiementListScreenState extends State<PaiementListScreen> {
                 Container(
                   margin: const EdgeInsets.only(bottom: 6),
                   child: Text(
-                    evenement,
+                    nomEvenement(inscription.idEvenement),
                     style: const TextStyle(fontSize: 20),
                   ),
                 ),
-                Text('Catégorie : $categorie'),
-                Text('Athlète : $athlete'),
-                Text('Montant : ${paiement.montant.toStringAsFixed(2)} DT'),
-                Text('Date : ${afficherDate(paiement.datePaiement)}'),
-                Text('Méthode : ${paiement.methodeToString()}'),
-                Text('Statut : ${paiement.statutToString()}'),
-                Text('Référence : ${paiement.reference}'),
+                Text('Catégorie : ${nomCategorie(inscription.idCategorie)}'),
+                Text('Athlète : ${inscription.idAthlete}'),
+                Text(
+                  'Date inscription : '
+                      '${afficherDate(inscription.dateInscription)}',
+                ),
+                Text('Statut : ${inscription.statutToString()}'),
                 Container(
                   margin: const EdgeInsets.only(top: 8),
                   child: Row(
@@ -184,7 +153,7 @@ class _PaiementListScreenState extends State<PaiementListScreen> {
                     children: [
                       ElevatedButton(
                         onPressed: () {
-                          ouvrirFormulaire(paiement);
+                          ouvrirFormulaire(inscription);
                         },
                         child: const Text('Modifier'),
                       ),
@@ -192,7 +161,7 @@ class _PaiementListScreenState extends State<PaiementListScreen> {
                         margin: const EdgeInsets.only(left: 10),
                         child: ElevatedButton(
                           onPressed: () {
-                            supprimer(paiement.idPaiement);
+                            supprimer(inscription.idInscription);
                           },
                           child: const Text('Supprimer'),
                         ),
@@ -216,7 +185,7 @@ class _PaiementListScreenState extends State<PaiementListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Paiements'),
+        title: const Text('Inscriptions'),
       ),
       drawer: construireDrawer(context),
       body: construireListe(),
