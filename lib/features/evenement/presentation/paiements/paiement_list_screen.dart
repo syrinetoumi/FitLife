@@ -1,33 +1,38 @@
 import 'package:flutter/material.dart';
 
-import '../../models/categorie.dart';
-import '../../models/evenement.dart';
-import '../../models/inscription.dart';
-import '../../repositories/categorie_repository.dart';
-import '../../repositories/evenement_repository.dart';
-import '../../repositories/inscription_repository.dart';
-import '../../../../../core/utils/outils.dart';
-import 'inscription_form_screen.dart';
+import '../../data/models/categorie.dart';
+import '../../data/models/evenement.dart';
+import '../../data/models/inscription.dart';
+import '../../data/models/paiement_evenement.dart';
+import '../../data/repositories/categorie_repository.dart';
+import '../../data/repositories/evenement_repository.dart';
+import '../../data/repositories/inscription_repository.dart';
+import '../../data/repositories/paiement_evenement_repository.dart';
+import '../../../../core/utils/outils.dart';
+import 'paiement_form_screen.dart';
 
-class InscriptionListScreen extends StatefulWidget {
+class PaiementListScreen extends StatefulWidget {
   // integre = true : affiché dans un TabBarView ou sous un
   // BottomNavigationBar, donc sans son propre Scaffold/AppBar.
   final bool integre;
 
-  const InscriptionListScreen({
+  const PaiementListScreen({
     super.key,
     this.integre = false,
   });
 
   @override
-  State<InscriptionListScreen> createState() => _InscriptionListScreenState();
+  State<PaiementListScreen> createState() => _PaiementListScreenState();
 }
 
-class _InscriptionListScreenState extends State<InscriptionListScreen> {
+class _PaiementListScreenState extends State<PaiementListScreen> {
+  PaiementEvenementRepository paiementRepository =
+  PaiementEvenementRepository();
   InscriptionRepository inscriptionRepository = InscriptionRepository();
   EvenementRepository evenementRepository = EvenementRepository();
   CategorieRepository categorieRepository = CategorieRepository();
 
+  List<PaiementEvenement> paiements = [];
   List<Inscription> inscriptions = [];
   List<Evenement> evenements = [];
   List<Categorie> categories = [];
@@ -40,6 +45,9 @@ class _InscriptionListScreenState extends State<InscriptionListScreen> {
 
   Future<void> chargerDonnees() async {
     try {
+      List<PaiementEvenement> resultatPaiements =
+      await paiementRepository.getPaiements();
+
       List<Inscription> resultatInscriptions =
       await inscriptionRepository.getInscriptions();
 
@@ -54,6 +62,7 @@ class _InscriptionListScreenState extends State<InscriptionListScreen> {
       }
 
       setState(() {
+        paiements = resultatPaiements;
         inscriptions = resultatInscriptions;
         evenements = resultatEvenements;
         categories = resultatCategories;
@@ -65,9 +74,19 @@ class _InscriptionListScreenState extends State<InscriptionListScreen> {
     }
   }
 
-  String nomEvenement(String idEvenement) {
+  Inscription? trouverInscription(String id) {
+    for (Inscription inscription in inscriptions) {
+      if (inscription.idInscription == id) {
+        return inscription;
+      }
+    }
+
+    return null;
+  }
+
+  String nomEvenement(String id) {
     for (Evenement evenement in evenements) {
-      if (evenement.idEvenement == idEvenement) {
+      if (evenement.idEvenement == id) {
         return evenement.nom;
       }
     }
@@ -75,9 +94,9 @@ class _InscriptionListScreenState extends State<InscriptionListScreen> {
     return 'Événement inconnu';
   }
 
-  String nomCategorie(String idCategorie) {
+  String nomCategorie(String id) {
     for (Categorie categorie in categories) {
-      if (categorie.idCategorie == idCategorie) {
+      if (categorie.idCategorie == id) {
         return categorie.nom;
       }
     }
@@ -87,7 +106,7 @@ class _InscriptionListScreenState extends State<InscriptionListScreen> {
 
   Future<void> supprimer(String id) async {
     try {
-      await inscriptionRepository.supprimer(id);
+      await paiementRepository.supprimer(id);
       await chargerDonnees();
     } catch (erreur) {
       if (mounted) {
@@ -96,11 +115,11 @@ class _InscriptionListScreenState extends State<InscriptionListScreen> {
     }
   }
 
-  Future<void> ouvrirFormulaire(Inscription? inscription) async {
+  Future<void> ouvrirFormulaire(PaiementEvenement? paiement) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => InscriptionFormScreen(inscription: inscription),
+        builder: (context) => PaiementFormScreen(paiement: paiement),
       ),
     );
 
@@ -111,7 +130,7 @@ class _InscriptionListScreenState extends State<InscriptionListScreen> {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       // +1 : la première ligne est le bouton "Ajouter".
-      itemCount: inscriptions.length + 1,
+      itemCount: paiements.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
           return Container(
@@ -120,12 +139,24 @@ class _InscriptionListScreenState extends State<InscriptionListScreen> {
               onPressed: () {
                 ouvrirFormulaire(null);
               },
-              child: const Text('Ajouter une inscription'),
+              child: const Text('Ajouter un paiement'),
             ),
           );
         }
 
-        Inscription inscription = inscriptions[index - 1];
+        PaiementEvenement paiement = paiements[index - 1];
+
+        Inscription? inscription = trouverInscription(paiement.idInscription);
+
+        String evenement = 'Événement inconnu';
+        String categorie = 'Catégorie inconnue';
+        String athlete = 'Athlète inconnu';
+
+        if (inscription != null) {
+          evenement = nomEvenement(inscription.idEvenement);
+          categorie = nomCategorie(inscription.idCategorie);
+          athlete = inscription.idAthlete;
+        }
 
         return Card(
           child: Container(
@@ -135,17 +166,17 @@ class _InscriptionListScreenState extends State<InscriptionListScreen> {
                 Container(
                   margin: const EdgeInsets.only(bottom: 6),
                   child: Text(
-                    nomEvenement(inscription.idEvenement),
+                    evenement,
                     style: const TextStyle(fontSize: 20),
                   ),
                 ),
-                Text('Catégorie : ${nomCategorie(inscription.idCategorie)}'),
-                Text('Athlète : ${inscription.idAthlete}'),
-                Text(
-                  'Date inscription : '
-                      '${afficherDate(inscription.dateInscription)}',
-                ),
-                Text('Statut : ${inscription.statutToString()}'),
+                Text('Catégorie : $categorie'),
+                Text('Athlète : $athlete'),
+                Text('Montant : ${paiement.montant.toStringAsFixed(2)} DT'),
+                Text('Date : ${afficherDate(paiement.datePaiement)}'),
+                Text('Méthode : ${paiement.methodeToString()}'),
+                Text('Statut : ${paiement.statutToString()}'),
+                Text('Référence : ${paiement.reference}'),
                 Container(
                   margin: const EdgeInsets.only(top: 8),
                   child: Row(
@@ -153,7 +184,7 @@ class _InscriptionListScreenState extends State<InscriptionListScreen> {
                     children: [
                       ElevatedButton(
                         onPressed: () {
-                          ouvrirFormulaire(inscription);
+                          ouvrirFormulaire(paiement);
                         },
                         child: const Text('Modifier'),
                       ),
@@ -161,7 +192,7 @@ class _InscriptionListScreenState extends State<InscriptionListScreen> {
                         margin: const EdgeInsets.only(left: 10),
                         child: ElevatedButton(
                           onPressed: () {
-                            supprimer(inscription.idInscription);
+                            supprimer(paiement.idPaiement);
                           },
                           child: const Text('Supprimer'),
                         ),
@@ -185,7 +216,7 @@ class _InscriptionListScreenState extends State<InscriptionListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inscriptions'),
+        title: const Text('Paiements'),
       ),
       drawer: construireDrawer(context),
       body: construireListe(),

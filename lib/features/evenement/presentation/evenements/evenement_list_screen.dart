@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../models/evenement.dart';
-import '../../repositories/evenement_repository.dart';
-import '../../../../../core/utils/outils.dart';
+import '../../data/models/evenement.dart';
+import '../../data/repositories/evenement_repository.dart';
+import '../../../../core/utils/outils.dart';
 import 'evenement_form_screen.dart';
 
 class EvenementListScreen extends StatefulWidget {

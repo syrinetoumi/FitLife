@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'core/utils/outils.dart';
 
-import 'features/evenement/data/presentation/categories/categorie_list_screen.dart';
-import 'features/evenement/data/presentation/evenements/evenement_list_screen.dart';
-import 'features/evenement/data/presentation/inscription/inscription_list_screen.dart';
-import 'features/evenement/data/presentation/paiements/paiement_list_screen.dart';
+import 'features/evenement/presentation/categories/categorie_list_screen.dart';
+import 'features/evenement/presentation/evenements/evenement_list_screen.dart';
+import 'features/evenement/presentation/inscription/inscription_list_screen.dart';
+import 'features/evenement/presentation/paiements/paiement_list_screen.dart';
 
 class NavigationBasScreen extends StatefulWidget {
   const NavigationBasScreen({super.key});

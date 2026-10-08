@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../models/categorie.dart';
-import '../../models/evenement.dart';
-import '../../models/inscription.dart';
-import '../../models/paiement_evenement.dart';
-import '../../repositories/categorie_repository.dart';
-import '../../repositories/evenement_repository.dart';
-import '../../repositories/inscription_repository.dart';
-import '../../repositories/paiement_evenement_repository.dart';
-import '../../../../../core/utils/outils.dart';
+import '../../data/models/categorie.dart';
+import '../../data/models/evenement.dart';
+import '../../data/models/inscription.dart';
+import '../../data/models/paiement_evenement.dart';
+import '../../data/repositories/categorie_repository.dart';
+import '../../data/repositories/evenement_repository.dart';
+import '../../data/repositories/inscription_repository.dart';
+import '../../data/repositories/paiement_evenement_repository.dart';
+import '../../../../core/utils/outils.dart';
 
 class PaiementFormScreen extends StatefulWidget {
   final PaiementEvenement? paiement;

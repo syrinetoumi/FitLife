@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../models/categorie.dart';
-import '../../models/evenement.dart';
-import '../../repositories/categorie_repository.dart';
-import '../../repositories/evenement_repository.dart';
-import '../../../../../core/utils/outils.dart';
+import '../../data/models/categorie.dart';
+import '../../data/models/evenement.dart';
+import '../../data/repositories/categorie_repository.dart';
+import '../../data/repositories/evenement_repository.dart';
+import '../../../../core/utils/outils.dart';
 
 class CategorieFormScreen extends StatefulWidget {
   final Categorie? categorie;

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/supabase_config.dart';
-import 'features/evenement/data/presentation/categories/categorie_list_screen.dart';
-import 'features/evenement/data/presentation/evenements/evenement_list_screen.dart';
+import 'features/evenement/presentation/categories/categorie_list_screen.dart';
+import 'features/evenement/presentation/evenements/evenement_list_screen.dart';
 import 'home_screen.dart';
-import 'features/evenement/data/presentation/inscription/inscription_list_screen.dart';
+import 'features/evenement/presentation/inscription/inscription_list_screen.dart';
 import 'navigation_bas_screen.dart';
 import 'navigation_onglets_screen.dart';
-import 'features/evenement/data/presentation/paiements/paiement_list_screen.dart';
+import 'features/evenement/presentation/paiements/paiement_list_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
