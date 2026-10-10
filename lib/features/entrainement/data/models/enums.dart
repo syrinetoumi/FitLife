@@ -14,3 +14,8 @@ enum Niveau { DEBUTANT, INTERMEDIAIRE, AVANCE }
 enum TypeSeance { INDIVIDUELLE, COLLECTIVE }
 
 enum StatutSeance { PLANIFIEE, COMPLETE, ANNULEE, TERMINEE }
+
+enum StatutReservation { CONFIRMEE, ANNULEE }
+
+// Affichage : PERTE_POIDS devient "PERTE POIDS".
+String enTexte(Enum valeur) => valeur.name.replaceAll('_', ' ');
