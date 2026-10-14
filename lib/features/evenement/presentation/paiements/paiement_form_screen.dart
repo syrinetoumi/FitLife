@@ -9,13 +9,20 @@ import '../../data/repositories/evenement_repository.dart';
 import '../../data/repositories/inscription_repository.dart';
 import '../../data/repositories/paiement_evenement_repository.dart';
 import '../../../../core/utils/outils.dart';
+import 'confirmation_paiement_screen.dart';
 
 class PaiementFormScreen extends StatefulWidget {
   final PaiementEvenement? paiement;
 
+  // MÉTIER 3 : quand l'écran est ouvert depuis le parcours
+  // "inscription puis paiement", l'inscription est imposée
+  // (l'utilisateur ne peut pas en choisir une autre).
+  final Inscription? inscriptionChoisie;
+
   const PaiementFormScreen({
     super.key,
     this.paiement,
+    this.inscriptionChoisie,
   });
 
   @override
@@ -49,6 +56,11 @@ class _PaiementFormScreenState extends State<PaiementFormScreen> {
       methode = widget.paiement!.methode;
     }
 
+    // MÉTIER 3 : inscription imposée par le parcours.
+    if (widget.inscriptionChoisie != null) {
+      idInscription = widget.inscriptionChoisie!.idInscription;
+    }
+
     chargerDonnees();
   }
 
@@ -67,10 +79,22 @@ class _PaiementFormScreenState extends State<PaiementFormScreen> {
         return;
       }
 
+      // MÉTIER 3 : montant automatique = prix de l'événement
+      // de l'inscription imposée.
+      double nouveauMontant = montant;
+      if (widget.inscriptionChoisie != null) {
+        for (Evenement e in resultatEvenements) {
+          if (e.idEvenement == widget.inscriptionChoisie!.idEvenement) {
+            nouveauMontant = e.prix;
+          }
+        }
+      }
+
       setState(() {
         inscriptions = resultatInscriptions;
         evenements = resultatEvenements;
         categories = resultatCategories;
+        montant = nouveauMontant;
       });
     } catch (erreur) {
       if (mounted) {
@@ -167,6 +191,27 @@ class _PaiementFormScreenState extends State<PaiementFormScreen> {
         );
 
         await paiementRepository.ajouter(paiement);
+
+        // ========================================================
+        // MÉTIER 3 : dernière étape du parcours => CONFIRMATION.
+        // ========================================================
+        if (widget.inscriptionChoisie != null && mounted) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ConfirmationPaiementScreen(
+                paiement: paiement,
+                nomEvenement: nomEvenement(
+                  widget.inscriptionChoisie!.idEvenement,
+                ),
+                nomCategorie: nomCategorie(
+                  widget.inscriptionChoisie!.idCategorie,
+                ),
+                idAthlete: widget.inscriptionChoisie!.idAthlete,
+              ),
+            ),
+          );
+        }
       } else {
         // En modification, on garde la date, le statut et la référence.
         PaiementEvenement paiement = PaiementEvenement(
@@ -203,6 +248,36 @@ class _PaiementFormScreenState extends State<PaiementFormScreen> {
   }
 
   Widget choixInscription() {
+    // MÉTIER 3 : inscription imposée par le parcours
+    // => une seule carte, non cliquable (verrouillée).
+    if (widget.inscriptionChoisie != null) {
+      Inscription inscription = widget.inscriptionChoisie!;
+      String nom = nomEvenement(inscription.idEvenement);
+
+      return Card(
+        color: Colors.blue.shade50,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              Text(
+                '✓ $nom',
+                style: const TextStyle(fontSize: 17),
+              ),
+              Text(
+                'Catégorie : ${nomCategorie(inscription.idCategorie)}',
+              ),
+              Text('Athlète : ${inscription.idAthlete}'),
+              Text(
+                'Prix : '
+                    '${prixEvenement(inscription.idEvenement).toStringAsFixed(2)} DT',
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (inscriptions.isEmpty) {
       return const Text('Aucune inscription : créez-en une d’abord.');
     }
