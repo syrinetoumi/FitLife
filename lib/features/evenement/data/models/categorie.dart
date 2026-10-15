@@ -5,13 +5,14 @@ enum NiveauCategorie {
   professionnel,
 }
 
+// Catalogue indépendant : une catégorie n'est plus liée
+// à un événement (c'est l'événement qui en choisit une).
 class Categorie {
   String idCategorie;
   String nom;
   int ageMin;
   int ageMax;
   NiveauCategorie niveau;
-  String idEvenement;
 
   Categorie({
     required this.idCategorie,
@@ -19,7 +20,6 @@ class Categorie {
     required this.ageMin,
     required this.ageMax,
     required this.niveau,
-    required this.idEvenement,
   });
 
   Map<String, dynamic> toMap() {
@@ -28,7 +28,6 @@ class Categorie {
       'age_min': ageMin,
       'age_max': ageMax,
       'niveau': niveau.name.toUpperCase(),
-      'id_evenement': idEvenement,
     };
   }
 
@@ -42,7 +41,6 @@ class Categorie {
             (niveau) => niveau.name.toUpperCase() == data['niveau'],
         orElse: () => NiveauCategorie.debutant,
       ),
-      idEvenement: data['id_evenement'].toString(),
     );
   }
 }

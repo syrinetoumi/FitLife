@@ -22,22 +22,6 @@ class CategorieRepository {
     return categories;
   }
 
-  Future<List<Categorie>> getCategoriesByEvenement(String idEvenement) async {
-    final lignes = await client
-        .from('categories')
-        .select()
-        .eq('id_evenement', idEvenement)
-        .order('nom');
-
-    List<Categorie> categories = [];
-
-    for (var ligne in lignes) {
-      categories.add(Categorie.fromMap(ligne));
-    }
-
-    return categories;
-  }
-
   Future<void> modifier(Categorie categorie) async {
     await client
         .from('categories')
