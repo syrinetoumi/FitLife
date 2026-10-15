@@ -27,6 +27,9 @@ class Evenement {
   int capacite;
   double prix;
   StatutEvenement statut;
+  // NOUVEAU : l'événement possède UNE catégorie
+  // (la catégorie est un catalogue indépendant).
+  String idCategorie;
 
   Evenement({
     required this.idEvenement,
@@ -40,6 +43,7 @@ class Evenement {
     required this.capacite,
     required this.prix,
     required this.statut,
+    required this.idCategorie,
   });
 
   // Les noms des colonnes sont ceux de la table "evenements" (Supabase).
@@ -55,6 +59,7 @@ class Evenement {
       'capacite': capacite,
       'prix': prix,
       'statut': statut.name.toUpperCase(),
+      'id_categorie': idCategorie,
     };
   }
 
@@ -77,6 +82,8 @@ class Evenement {
             (statut) => statut.name.toUpperCase() == data['statut'],
         orElse: () => StatutEvenement.brouillon,
       ),
+      // Les anciennes lignes peuvent être vides (colonne nullable).
+      idCategorie: data['id_categorie']?.toString() ?? '',
     );
   }
 }

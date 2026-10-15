@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models/categorie.dart';
-import '../../data/models/evenement.dart';
 import '../../data/repositories/categorie_repository.dart';
-import '../../data/repositories/evenement_repository.dart';
 import '../../../../core/utils/outils.dart';
 
+// Formulaire catégorie : gestion du CATALOGUE
+// (nom, âges, niveau). Une catégorie n'est plus liée
+// à un événement : l'affectation se fait dans le
+// formulaire événement.
 class CategorieFormScreen extends StatefulWidget {
   final Categorie? categorie;
 
@@ -22,14 +24,10 @@ class _CategorieFormScreenState extends State<CategorieFormScreen> {
   final formKey = GlobalKey<FormState>();
 
   CategorieRepository categorieRepository = CategorieRepository();
-  EvenementRepository evenementRepository = EvenementRepository();
-
-  List<Evenement> evenements = [];
 
   String nom = '';
   String ageMinTexte = '';
   String ageMaxTexte = '';
-  String idEvenement = '';
   NiveauCategorie niveau = NiveauCategorie.debutant;
 
   @override
@@ -42,28 +40,7 @@ class _CategorieFormScreenState extends State<CategorieFormScreen> {
       nom = categorie.nom;
       ageMinTexte = categorie.ageMin.toString();
       ageMaxTexte = categorie.ageMax.toString();
-      idEvenement = categorie.idEvenement;
       niveau = categorie.niveau;
-    }
-
-    chargerEvenements();
-  }
-
-  Future<void> chargerEvenements() async {
-    try {
-      List<Evenement> resultat = await evenementRepository.getEvenements();
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        evenements = resultat;
-      });
-    } catch (erreur) {
-      if (mounted) {
-        afficherMessage(context, 'Erreur de chargement : $erreur');
-      }
     }
   }
 
@@ -90,11 +67,6 @@ class _CategorieFormScreenState extends State<CategorieFormScreen> {
       return;
     }
 
-    if (idEvenement.isEmpty) {
-      afficherMessage(context, 'Choisissez un événement');
-      return;
-    }
-
     int ageMin = int.parse(ageMinTexte);
     int ageMax = int.parse(ageMaxTexte);
 
@@ -109,7 +81,6 @@ class _CategorieFormScreenState extends State<CategorieFormScreen> {
       ageMin: ageMin,
       ageMax: ageMax,
       niveau: niveau,
-      idEvenement: idEvenement,
     );
 
     try {
@@ -135,40 +106,6 @@ class _CategorieFormScreenState extends State<CategorieFormScreen> {
       child: Text(
         texte,
         style: const TextStyle(fontSize: 18),
-      ),
-    );
-  }
-
-  // Liste des événements : ListView.builder (Chapitre 3) dans une zone
-  // de hauteur fixe, chaque ligne est cliquable (InkWell, Chapitre 5).
-  Widget choixEvenement() {
-    if (evenements.isEmpty) {
-      return const Text('Aucun événement : créez-en un d’abord.');
-    }
-
-    return Container(
-      height: 200,
-      child: ListView.builder(
-        itemCount: evenements.length,
-        itemBuilder: (context, index) {
-          Evenement evenement = evenements[index];
-          bool choisi = idEvenement == evenement.idEvenement;
-
-          return Card(
-            color: choisi ? Colors.blue.shade50 : null,
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  idEvenement = evenement.idEvenement;
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                child: Text(choisi ? '✓ ${evenement.nom}' : evenement.nom),
-              ),
-            ),
-          );
-        },
       ),
     );
   }
@@ -214,8 +151,6 @@ class _CategorieFormScreenState extends State<CategorieFormScreen> {
         child: Form(
           key: formKey,
           child: ListView(
-            // Garde tous les champs construits (voir evenement_form_screen).
-            cacheExtent: 3000,
             padding: const EdgeInsets.only(bottom: 40),
             children: [
               TextFormField(
@@ -246,8 +181,6 @@ class _CategorieFormScreenState extends State<CategorieFormScreen> {
                 },
                 validator: validerAge,
               ),
-              titreSection('Choisir un événement'),
-              choixEvenement(),
               titreSection('Niveau'),
               choixNiveau(),
               Container(

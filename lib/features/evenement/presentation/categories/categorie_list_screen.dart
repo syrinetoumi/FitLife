@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models/categorie.dart';
-import '../../data/models/evenement.dart';
 import '../../data/repositories/categorie_repository.dart';
-import '../../data/repositories/evenement_repository.dart';
 import '../../../../core/utils/outils.dart';
 import 'categorie_form_screen.dart';
 
@@ -23,32 +21,25 @@ class CategorieListScreen extends StatefulWidget {
 
 class _CategorieListScreenState extends State<CategorieListScreen> {
   CategorieRepository categorieRepository = CategorieRepository();
-  EvenementRepository evenementRepository = EvenementRepository();
 
   List<Categorie> categories = [];
-  List<Evenement> evenements = [];
 
   @override
   void initState() {
     super.initState();
-    chargerDonnees();
+    chargerCategories();
   }
 
-  Future<void> chargerDonnees() async {
+  Future<void> chargerCategories() async {
     try {
-      List<Categorie> resultatCategories =
-      await categorieRepository.getCategories();
-
-      List<Evenement> resultatEvenements =
-      await evenementRepository.getEvenements();
+      List<Categorie> resultat = await categorieRepository.getCategories();
 
       if (!mounted) {
         return;
       }
 
       setState(() {
-        categories = resultatCategories;
-        evenements = resultatEvenements;
+        categories = resultat;
       });
     } catch (erreur) {
       if (mounted) {
@@ -57,20 +48,10 @@ class _CategorieListScreenState extends State<CategorieListScreen> {
     }
   }
 
-  String nomEvenement(String idEvenement) {
-    for (Evenement evenement in evenements) {
-      if (evenement.idEvenement == idEvenement) {
-        return evenement.nom;
-      }
-    }
-
-    return 'Événement inconnu';
-  }
-
   Future<void> supprimer(String id) async {
     try {
       await categorieRepository.supprimer(id);
-      await chargerDonnees();
+      await chargerCategories();
     } catch (erreur) {
       if (mounted) {
         afficherMessage(context, 'Suppression impossible : $erreur');
@@ -86,7 +67,7 @@ class _CategorieListScreenState extends State<CategorieListScreen> {
       ),
     );
 
-    chargerDonnees();
+    chargerCategories();
   }
 
   Widget construireListe() {
@@ -121,7 +102,6 @@ class _CategorieListScreenState extends State<CategorieListScreen> {
                     style: const TextStyle(fontSize: 20),
                   ),
                 ),
-                Text('Événement : ${nomEvenement(categorie.idEvenement)}'),
                 Text('Âge : ${categorie.ageMin} - ${categorie.ageMax}'),
                 Text('Niveau : ${categorie.niveau.name.toUpperCase()}'),
                 Container(

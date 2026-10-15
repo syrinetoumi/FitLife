@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../data/models/categorie.dart';
 import '../../data/models/evenement.dart';
+import '../../data/repositories/categorie_repository.dart';
 import '../../data/repositories/evenement_repository.dart';
 import '../../../../core/utils/outils.dart';
+import '../categories/categorie_form_screen.dart';
 
 class EvenementFormScreen extends StatefulWidget {
   final Evenement? evenement;
@@ -20,6 +23,7 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
   final formKey = GlobalKey<FormState>();
 
   EvenementRepository evenementRepository = EvenementRepository();
+  CategorieRepository categorieRepository = CategorieRepository();
 
   // Valeurs du formulaire (mises à jour par onChanged).
   String nom = '';
@@ -33,6 +37,11 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
 
   TypeEvenement type = TypeEvenement.marathon;
   StatutEvenement statut = StatutEvenement.brouillon;
+
+  // La catégorie de l'événement : choisie dans le catalogue
+  // (champ scrollable + bouton "+").
+  List<Categorie> categories = [];
+  String idCategorie = '';
 
   @override
   void initState() {
@@ -51,6 +60,30 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
       heureTexte = evenement.heureDebut;
       type = evenement.type;
       statut = evenement.statut;
+      // En modification : la catégorie actuelle est présélectionnée.
+      idCategorie = evenement.idCategorie;
+    }
+
+    chargerCategories();
+  }
+
+  // Le catalogue des catégories (identique en création
+  // et en modification : il ne dépend pas de l'événement).
+  Future<void> chargerCategories() async {
+    try {
+      List<Categorie> resultat = await categorieRepository.getCategories();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        categories = resultat;
+      });
+    } catch (erreur) {
+      if (mounted) {
+        afficherMessage(context, 'Erreur de chargement : $erreur');
+      }
     }
   }
 
@@ -103,6 +136,12 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
       return;
     }
 
+    // La catégorie est obligatoire (création ET modification).
+    if (idCategorie.isEmpty) {
+      afficherMessage(context, 'Choisissez une catégorie');
+      return;
+    }
+
     DateTime? dateDebut = lireDate(dateDebutTexte);
     DateTime? dateFin = lireDate(dateFinTexte);
     String? heure = lireHeure(heureTexte);
@@ -132,6 +171,7 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
       capacite: int.parse(capaciteTexte),
       prix: double.parse(prixTexte.replaceAll(',', '.')),
       statut: statut,
+      idCategorie: idCategorie,
     );
 
     try {
@@ -151,12 +191,92 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
     }
   }
 
+  // Bouton "+" : ouvre le formulaire catégorie ; au retour, la zone
+  // se recharge et la NOUVELLE catégorie est présélectionnée.
+  Future<void> ouvrirFormulaireCategorie() async {
+    // On mémorise le catalogue actuel pour repérer la nouveauté.
+    List<String> anciensIds = [];
+    for (Categorie c in categories) {
+      anciensIds.add(c.idCategorie);
+    }
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CategorieFormScreen(),
+      ),
+    );
+
+    await chargerCategories();
+
+    if (!mounted) {
+      return;
+    }
+
+    // La catégorie qui n'était pas là avant = la nouvelle.
+    for (Categorie c in categories) {
+      if (!anciensIds.contains(c.idCategorie)) {
+        setState(() {
+          idCategorie = c.idCategorie;
+        });
+      }
+    }
+  }
+
   Widget titreSection(String texte) {
     return Container(
       margin: const EdgeInsets.only(top: 20, bottom: 8),
       child: Text(
         texte,
         style: const TextStyle(fontSize: 18),
+      ),
+    );
+  }
+
+  // Champ scrollable des catégories + icône "+" à côté du titre.
+  // ListView.builder (Chapitre 3) dans une zone de hauteur fixe,
+  // chaque ligne est cliquable (InkWell, Chapitre 5).
+  Widget zoneCategorie() {
+    if (categories.isEmpty) {
+      return const Text(
+        'Aucune catégorie : appuyez sur + pour en créer une.',
+      );
+    }
+
+    return Container(
+      height: 200,
+      child: ListView.builder(
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          Categorie categorie = categories[index];
+          bool choisie = idCategorie == categorie.idCategorie;
+
+          return Card(
+            color: choisie ? Colors.blue.shade50 : null,
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  idCategorie = categorie.idCategorie;
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Text(
+                      choisie ? '✓ ${categorie.nom}' : categorie.nom,
+                      style: const TextStyle(fontSize: 17),
+                    ),
+                    Text('Âge : ${categorie.ageMin} - ${categorie.ageMax}'),
+                    Text(
+                      'Niveau : ${categorie.niveau.name.toUpperCase()}',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -279,6 +399,26 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
               ),
               titreSection('Type de l’événement'),
               choixType(),
+
+              // CATÉGORIE : titre + icône "+", puis champ scrollable.
+              Container(
+                margin: const EdgeInsets.only(top: 20, bottom: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Catégorie de l’événement',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add),
+                      onPressed: ouvrirFormulaireCategorie,
+                    ),
+                  ],
+                ),
+              ),
+              zoneCategorie(),
+
               titreSection('Date et heure'),
               TextFormField(
                 initialValue: dateDebutTexte,
