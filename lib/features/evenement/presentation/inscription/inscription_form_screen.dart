@@ -11,6 +11,7 @@ import '../../data/repositories/evenement_repository.dart';
 import '../../data/repositories/inscription_repository.dart';
 import '../../domain/eligibilite_checker.dart';
 import '../../../../core/utils/outils.dart';
+import '../paiements/paiement_form_screen.dart';
 
 class InscriptionFormScreen extends StatefulWidget {
   final Inscription? inscription;
@@ -127,6 +128,30 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
         afficherMessage(context, 'Erreur de chargement : $erreur');
       }
     }
+  }
+
+  // MÉTIER 3 : retrouver l'inscription qui vient d'être créée,
+  // afin de connaître son id généré par Supabase
+  // (le paiement en a besoin : relation inscription → paiement).
+  Future<Inscription?> retrouverInscriptionCreee(
+      Inscription cible) async {
+    try {
+      List<Inscription> liste = await inscriptionRepository
+          .getInscriptionsByEvenement(cible.idEvenement);
+
+      for (Inscription inscription in liste) {
+        if (inscription.idAthlete == cible.idAthlete &&
+            inscription.idCategorie == cible.idCategorie) {
+          return inscription;
+        }
+      }
+    } catch (erreur) {
+      if (mounted) {
+        afficherMessage(context, 'Vérification impossible : $erreur');
+      }
+    }
+
+    return null;
   }
 
   String? validerAthlete(String? value) {
@@ -255,6 +280,25 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     try {
       if (widget.inscription == null) {
         await inscriptionRepository.ajouter(inscription);
+
+        // ========================================================
+        // MÉTIER 3 : le parcours continue automatiquement
+        // vers le PAIEMENT (étape suivante du sujet).
+        // On retrouve l'inscription créée pour avoir son id
+        // (nécessaire au paiement).
+        // ========================================================
+        Inscription? creee = await retrouverInscriptionCreee(inscription);
+
+        if (creee != null && mounted) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PaiementFormScreen(
+                inscriptionChoisie: creee,
+              ),
+            ),
+          );
+        }
       } else {
         await inscriptionRepository.modifier(inscription);
       }
