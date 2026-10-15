@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Afficher un message en bas de l'écran.
 void afficherMessage(BuildContext context, String texte) {
@@ -306,6 +307,38 @@ Widget construireDrawer(BuildContext context) {
                 'Navigation en bas',
                 Icons.vertical_align_bottom,
                 '/bas',
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 20),
+                child: Card(
+                  child: InkWell(
+                    onTap: () async {
+                      await Supabase.instance.client.auth.signOut();
+
+                      if (context.mounted) {
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          '/connexion',
+                              (route) => false,
+                        );
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.logout),
+                          Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(left: 14),
+                              child: Text('Se déconnecter'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

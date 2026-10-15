@@ -13,6 +13,11 @@ import 'features/entrainement/presentation/exploration_musculaire/body_screen.da
 import 'features/entrainement/presentation/programmes/programme_list_screen.dart';
 import 'features/entrainement/presentation/entrainement_navigation_bas_screen.dart';
 import 'features/entrainement/presentation/entrainement_navigation_onglets_screen.dart';
+import 'core/theme/app_theme.dart';
+import 'features/auth/presentation/login_screen.dart';
+import 'features/auth/presentation/register_screen.dart';
+import 'features/auth/presentation/forgot_password_screen.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -42,7 +47,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'FitLife',
-      initialRoute: '/',
+      theme: construireTheme(),
+      initialRoute: Supabase.instance.client.auth.currentSession == null
+          ? '/connexion'
+          : '/',
       routes: {
         '/': (context) => const HomeScreen(),
         '/evenements': (context) => const EvenementListScreen(),
@@ -56,7 +64,11 @@ class MyApp extends StatelessWidget {
         '/entrainement-bas': (context) => const EntrainementNavigationBasScreen(),
         '/entrainement-onglets': (context) =>
         const EntrainementNavigationOngletsScreen(),
+        '/connexion': (context) => const LoginScreen(),
+        '/inscription': (context) => const RegisterScreen(),
+        '/mot-de-passe-oublie': (context) => const ForgotPasswordScreen(),
       },
+
     );
   }
 }
