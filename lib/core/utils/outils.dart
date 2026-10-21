@@ -226,7 +226,8 @@ Widget construireDrawer(BuildContext context) {
           ),
         ),
 
-        // BLOC ENTRAÎNEMENT
+        // BLOC ENTRAÎNEMENT : une seule entrée,
+        // la barre du bas gère Corps / Programmes.
         Container(
           margin: const EdgeInsets.only(
             top: 20,
@@ -247,30 +248,9 @@ Widget construireDrawer(BuildContext context) {
             children: [
               elementMenu(
                 context,
-                'Exploration musculaire',
-                Icons.accessibility_new,
-                '/corps',
-              ),
-
-              elementMenu(
-                context,
-                'Programmes',
+                'Entraînement',
                 Icons.fitness_center,
-                '/programmes',
-              ),
-
-              elementMenu(
-                context,
-                'Entraînement (bas)',
-                Icons.vertical_align_bottom,
-                '/entrainement-bas',
-              ),
-
-              elementMenu(
-                context,
-                'Entraînement (haut)',
-                Icons.tab,
-                '/entrainement-onglets',
+                '/entrainement',
               ),
             ],
           ),
@@ -308,39 +288,45 @@ Widget construireDrawer(BuildContext context) {
                 Icons.vertical_align_bottom,
                 '/bas',
               ),
-              Container(
-                margin: const EdgeInsets.only(top: 20),
-                child: Card(
-                  child: InkWell(
-                    onTap: () async {
-                      await Supabase.instance.client.auth.signOut();
+            ],
+          ),
+        ),
 
-                      if (context.mounted) {
-                        Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          '/connexion',
-                              (route) => false,
-                        );
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.logout),
-                          Expanded(
-                            child: Padding(
-                              padding: EdgeInsets.only(left: 14),
-                              child: Text('Se déconnecter'),
-                            ),
-                          ),
-                        ],
+        // SE DÉCONNECTER (carte séparée)
+        Container(
+          margin: const EdgeInsets.only(top: 20),
+
+          child: Card(
+            child: InkWell(
+              onTap: () async {
+                await Supabase.instance.client.auth.signOut();
+
+                if (context.mounted) {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/connexion',
+                        (route) => false,
+                  );
+                }
+              },
+
+              child: Container(
+                padding: const EdgeInsets.all(14),
+
+                child: const Row(
+                  children: [
+                    Icon(Icons.logout),
+
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 14),
+                        child: Text('Se déconnecter'),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ],
