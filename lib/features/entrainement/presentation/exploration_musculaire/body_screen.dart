@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:coach_app/core/utils/outils.dart';
 import 'muscle_cible.dart';
 import 'muscle_mapper/muscle_mapper.dart';
-
+import 'exercices_list_screen.dart';
 class BodyScreen extends StatefulWidget {
   // integre = true : affiché dans des onglets, sans Scaffold/AppBar.
   final bool integre;
@@ -38,15 +38,16 @@ class _BodyScreenState extends State<BodyScreen> {
       return;
     }
 
-    String cible = cibleExerciseDb(groupeChoisi!);
-
-    // À remplacer à l'étape suivante par :
-    // Navigator.push(context, MaterialPageRoute(
-    //   builder: (context) => ExercicesListScreen(
-    //     cible: cible, libelle: libelleGroupe(groupeChoisi!))));
-    afficherMessage(context, 'Exercices ciblant : $cible');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExercicesListScreen(
+          cible: cibleExerciseDb(groupeChoisi!),
+          libelle: libelleGroupe(groupeChoisi!),
+        ),
+      ),
+    );
   }
-
   Widget boutonChoix(String texte, bool choisi, VoidCallback action) {
     return ElevatedButton(
       onPressed: action,
