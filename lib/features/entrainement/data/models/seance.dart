@@ -37,7 +37,9 @@ class Seance {
     idProgramme: j['id_programme'],
     idEspaceSportif: j['id_espace_sportif'],
   );
-
+  // "16:00:00" devient "16:00" pour l'affichage.
+  String get debutCourt => heureDebut.substring(0, 5);
+  String get finCourt => heureFin.substring(0, 5);
   Map<String, dynamic> toJson() => {
     'titre': titre,
     'description': description,

@@ -4,11 +4,13 @@ import 'package:coach_app/core/utils/outils.dart';
 import 'package:coach_app/features/entrainement/data/models/enums.dart';
 import 'package:coach_app/features/entrainement/data/models/programme.dart';
 import 'package:coach_app/features/entrainement/data/repositories/programme_repository.dart';
+import 'package:coach_app/features/entrainement/presentation/widgets/apparence_entrainement.dart';
+import 'package:coach_app/features/entrainement/presentation/widgets/carte_image.dart';
+import 'programme_detail_screen.dart';
 import 'programme_form_screen.dart';
 
 class ProgrammeListScreen extends StatefulWidget {
-  // integre = true : affiché dans un TabBarView ou sous un
-  // BottomNavigationBar, donc sans son propre Scaffold/AppBar.
+  // integre = true : affiché sous la barre de navigation du bas.
   final bool integre;
 
   const ProgrammeListScreen({
@@ -22,14 +24,22 @@ class ProgrammeListScreen extends StatefulWidget {
 
 class _ProgrammeListScreenState extends State<ProgrammeListScreen> {
   ProgrammeRepository programmeRepository = ProgrammeRepository();
+  TextEditingController rechercheController = TextEditingController();
 
   List<Programme> programmes = [];
   bool chargement = true;
+  String recherche = '';
 
   @override
   void initState() {
     super.initState();
     chargerProgrammes();
+  }
+
+  @override
+  void dispose() {
+    rechercheController.dispose();
+    super.dispose();
   }
 
   Future<void> chargerProgrammes() async {
@@ -56,57 +66,110 @@ class _ProgrammeListScreenState extends State<ProgrammeListScreen> {
     }
   }
 
-  Future<void> supprimer(int id) async {
-    try {
-      await programmeRepository.supprimer(id);
-      await chargerProgrammes();
-    } catch (erreur) {
-      if (mounted) {
-        afficherMessage(context, 'Suppression impossible : $erreur');
-      }
-    }
-  }
-
-  // Demande de confirmation avant de supprimer.
-  Future<void> confirmerSuppression(Programme programme) async {
-    bool? confirme = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Supprimer'),
-          content: Text('Supprimer le programme "${programme.nom}" ?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
-              child: const Text('Annuler'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
-              child: const Text('Supprimer'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirme == true) {
-      supprimer(programme.id!);
-    }
-  }
-
-  Future<void> ouvrirFormulaire(Programme? programme) async {
+  Future<void> ouvrirFormulaire() async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ProgrammeFormScreen(programme: programme),
+        builder: (context) => const ProgrammeFormScreen(),
       ),
     );
 
     chargerProgrammes();
+  }
+
+  Future<void> ouvrirDetail(Programme programme) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProgrammeDetailScreen(programme: programme),
+      ),
+    );
+
+    chargerProgrammes();
+  }
+
+  // Barre de recherche arrondie.
+  Widget barreRecherche() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      child: TextField(
+        controller: rechercheController,
+        style: const TextStyle(color: Colors.white),
+        cursorColor: Colors.white,
+        onChanged: (valeur) {
+          setState(() {
+            recherche = valeur;
+          });
+        },
+        decoration: InputDecoration(
+          hintText: 'Rechercher un programme',
+          hintStyle: const TextStyle(color: Colors.white70),
+          prefixIcon: const Icon(Icons.search, color: Colors.white),
+          suffixIcon: recherche.isEmpty
+              ? null
+              : IconButton(
+            icon: const Icon(Icons.close, color: Colors.white),
+            onPressed: () {
+              rechercheController.clear();
+              setState(() {
+                recherche = '';
+              });
+            },
+          ),
+          filled: true,
+          fillColor: Theme.of(context).colorScheme.primary,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget boutonCreer() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: ouvrirFormulaire,
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('CRÉER UN PROGRAMME'),
+            Icon(Icons.chevron_right),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget carteProgramme(Programme programme) {
+    String sousTitre = enTexte(programme.niveau);
+
+    if (programme.dureeSemaines != null) {
+      sousTitre = '$sousTitre · ${programme.dureeSemaines} semaines';
+    }
+
+    return CarteImage(
+      titre: programme.nom,
+      sousTitre: sousTitre,
+      cheminImage: imageObjectif(programme.objectif),
+      couleurs: couleursObjectif(programme.objectif),
+      icone: iconeObjectif(programme.objectif),
+      onVoirPlus: () {
+        ouvrirDetail(programme);
+      },
+    );
   }
 
   Widget construireListe() {
@@ -114,85 +177,36 @@ class _ProgrammeListScreenState extends State<ProgrammeListScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return ListView.builder(
+    // Recherche par nom (sans tenir compte des majuscules).
+    String texte = recherche.trim().toLowerCase();
+
+    List<Programme> visibles = programmes.where((programme) {
+      return programme.nom.toLowerCase().contains(texte);
+    }).toList();
+
+    return ListView(
       padding: const EdgeInsets.all(16),
-      // +1 : la première ligne est le bouton "Ajouter".
-      itemCount: programmes.length + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: Column(
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    ouvrirFormulaire(null);
-                  },
-                  child: const Text('Ajouter un programme'),
-                ),
-                if (programmes.isEmpty)
-                  Container(
-                    margin: const EdgeInsets.only(top: 20),
-                    child: const Text('Aucun programme pour le moment.'),
-                  ),
-              ],
+      children: [
+        barreRecherche(),
+        boutonCreer(),
+        if (programmes.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: Text(
+              'Aucun programme pour le moment.',
+              textAlign: TextAlign.center,
             ),
-          );
-        }
-
-        Programme programme = programmes[index - 1];
-
-        return Card(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(bottom: 6),
-                  child: Text(
-                    programme.nom,
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                ),
-                if (programme.description != null &&
-                    programme.description!.isNotEmpty)
-                  Text(programme.description!),
-                Text('Objectif : ${enTexte(programme.objectif)}'),
-                Text('Niveau : ${enTexte(programme.niveau)}'),
-                if (programme.dureeSemaines != null)
-                  Text('Durée : ${programme.dureeSemaines} semaines'),
-                if (programme.dateDebut != null)
-                  Text('Début : ${afficherDate(programme.dateDebut!)}'),
-                if (programme.dateFin != null)
-                  Text('Fin : ${afficherDate(programme.dateFin!)}'),
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          ouvrirFormulaire(programme);
-                        },
-                        child: const Text('Modifier'),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.only(left: 10),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            confirmerSuppression(programme);
-                          },
-                          child: const Text('Supprimer'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+          )
+        else if (visibles.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              'Aucun programme ne correspond à "$recherche".',
+              textAlign: TextAlign.center,
             ),
           ),
-        );
-      },
+        ...visibles.map(carteProgramme),
+      ],
     );
   }
 
