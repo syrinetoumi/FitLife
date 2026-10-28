@@ -127,4 +127,54 @@ class SeanceRepository {
 
     return null;
   }
+  // Séances à venir visibles par les athlètes (planifiées ou complètes).
+  Future<List<Seance>> getSeancesDisponibles() async {
+    String aujourdhui = DateTime.now().toIso8601String().split('T').first;
+
+    final lignes = await client
+        .from('seance')
+        .select()
+        .inFilter('statut', ['PLANIFIEE', 'COMPLETE'])
+        .gte('date', aujourdhui)
+        .order('date', ascending: true)
+        .order('heure_debut', ascending: true);
+
+    List<Seance> seances = [];
+
+    for (var ligne in lignes) {
+      seances.add(Seance.fromJson(ligne));
+    }
+
+    return seances;
+  }
+
+  // Version à jour d'une séance (le statut change avec les réservations).
+  Future<Seance?> getSeance(int id) async {
+    final ligne = await client
+        .from('seance')
+        .select()
+        .eq('id_seance', id)
+        .maybeSingle();
+
+    if (ligne == null) {
+      return null;
+    }
+
+    return Seance.fromJson(ligne);
+  }
+
+  // Nombre de places réservées (fonction SQL nb_reservations).
+  // Retourne null si la fonction n'existe pas encore.
+  Future<int?> nombreReservations(int idSeance) async {
+    try {
+      final resultat = await client.rpc(
+        'nb_reservations',
+        params: {'p_seance': idSeance},
+      );
+
+      return (resultat as num).toInt();
+    } catch (erreur) {
+      return null;
+    }
+  }
 }

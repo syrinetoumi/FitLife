@@ -32,6 +32,22 @@ class ProgrammeRepository {
     return programmes;
   }
 
+  // Tous les programmes (catalogue vu par les athlètes).
+  Future<List<Programme>> getTousLesProgrammes() async {
+    final lignes = await client
+        .from('programme')
+        .select()
+        .order('id_programme', ascending: false);
+
+    List<Programme> programmes = [];
+
+    for (var ligne in lignes) {
+      programmes.add(Programme.fromJson(ligne));
+    }
+
+    return programmes;
+  }
+
   Future<void> modifier(Programme programme) async {
     await client
         .from('programme')

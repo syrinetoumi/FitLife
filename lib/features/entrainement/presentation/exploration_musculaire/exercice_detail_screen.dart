@@ -76,7 +76,7 @@ class ExerciceDetailScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: couleur.withOpacity(0.15),
+        color: couleur.withValues(alpha:0.15),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: couleur),
       ),

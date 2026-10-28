@@ -78,6 +78,7 @@ Future<bool> confirmerAction(
       required String titre,
       required String message,
       String libelleBouton = 'Supprimer',
+      String libelleRefus = 'Annuler',
     }) async {
   bool? reponse = await showDialog<bool>(
     context: context,
@@ -90,7 +91,7 @@ Future<bool> confirmerAction(
             onPressed: () {
               Navigator.pop(context, false);
             },
-            child: const Text('Annuler'),
+            child: Text(libelleRefus),
           ),
           TextButton(
             onPressed: () {

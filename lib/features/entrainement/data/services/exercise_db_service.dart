@@ -53,7 +53,45 @@ class ExerciseDbService {
         .map((element) => ExerciceApi.fromJson(element as Map<String, dynamic>))
         .toList();
   }
+  // Un exercice à partir de son identifiant (on ne stocke que l'identifiant).
+  Future<ExerciceApi> exerciceParId(String id) async {
+    if (cleExerciseDb.isEmpty) {
+      throw Exception(
+        'Clé ExerciseDB absente. Ajoute --dart-define=EXERCISEDB_KEY=... au lancement.',
+      );
+    }
 
+    Uri url = Uri.https(
+      hoteExerciseDb,
+      '/exercises/exercise/$id',
+      {'rapidapi-key': cleExerciseDb},
+    );
+
+    http.Response reponse = await http.get(url);
+    debugPrint('ExerciseDB exercice $id : ${reponse.statusCode}');
+
+    if (reponse.statusCode == 401 || reponse.statusCode == 403) {
+      throw Exception(
+        'Clé refusée ou abonnement ExerciseDB manquant (code ${reponse.statusCode}).',
+      );
+    }
+
+    if (reponse.statusCode == 404) {
+      throw Exception('Exercice introuvable.');
+    }
+
+    if (reponse.statusCode == 429) {
+      throw Exception('Quota de requêtes atteint. Réessaie plus tard.');
+    }
+
+    if (reponse.statusCode != 200) {
+      throw Exception('Erreur ExerciseDB (code ${reponse.statusCode}).');
+    }
+
+    return ExerciceApi.fromJson(
+      json.decode(reponse.body) as Map<String, dynamic>,
+    );
+  }
   // URL du GIF animé (180 px : seule résolution du plan gratuit).
   static String urlGif(String idExercice) {
     return Uri.https(
@@ -62,4 +100,5 @@ class ExerciseDbService {
       {'exerciseId': idExercice, 'resolution': '180'},
     ).toString();
   }
+
 }
