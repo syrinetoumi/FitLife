@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:coach_app/core/utils/outils.dart';
 import 'package:coach_app/features/entrainement/data/models/seance.dart';
+import 'package:coach_app/features/entrainement/data/repositories/role_repository.dart';
 import 'package:coach_app/features/entrainement/data/repositories/seance_repository.dart';
 import 'package:coach_app/features/entrainement/presentation/widgets/apparence_entrainement.dart';
 import 'package:coach_app/features/entrainement/presentation/widgets/carte_image.dart';
@@ -24,10 +25,12 @@ class SeanceListScreen extends StatefulWidget {
 
 class _SeanceListScreenState extends State<SeanceListScreen> {
   SeanceRepository seanceRepository = SeanceRepository();
+  RoleRepository roleRepository = RoleRepository();
   TextEditingController rechercheController = TextEditingController();
 
   List<Seance> seances = [];
   bool chargement = true;
+  bool coach = false;
   String recherche = '';
 
   @override
@@ -42,15 +45,24 @@ class _SeanceListScreenState extends State<SeanceListScreen> {
     super.dispose();
   }
 
+  // Coach : ses séances. Athlète : les séances à venir de tous les coachs.
   Future<void> chargerSeances() async {
     try {
-      List<Seance> resultat = await seanceRepository.getSeancesDuCoach();
+      bool estCoach = await roleRepository.estCoach();
+      List<Seance> resultat;
+
+      if (estCoach) {
+        resultat = await seanceRepository.getSeancesDuCoach();
+      } else {
+        resultat = await seanceRepository.getSeancesDisponibles();
+      }
 
       if (!mounted) {
         return;
       }
 
       setState(() {
+        coach = estCoach;
         seances = resultat;
         chargement = false;
       });
@@ -177,16 +189,21 @@ class _SeanceListScreenState extends State<SeanceListScreen> {
       return seance.titre.toLowerCase().contains(texte);
     }).toList();
 
+    String messageVide = coach
+        ? 'Aucune séance pour le moment.'
+        : 'Aucune séance disponible pour le moment.';
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         barreRecherche(),
-        boutonCreer(),
+        // Seul le coach crée des séances.
+        if (coach) boutonCreer(),
         if (seances.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(20),
+          Padding(
+            padding: const EdgeInsets.all(20),
             child: Text(
-              'Aucune séance pour le moment.',
+              messageVide,
               textAlign: TextAlign.center,
             ),
           )

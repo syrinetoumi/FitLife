@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:coach_app/features/entrainement/data/repositories/role_repository.dart';
 import 'package:coach_app/core/utils/outils.dart';
 import 'package:coach_app/features/entrainement/data/models/enums.dart';
 import 'package:coach_app/features/entrainement/data/models/programme.dart';
@@ -25,7 +25,8 @@ class ProgrammeListScreen extends StatefulWidget {
 class _ProgrammeListScreenState extends State<ProgrammeListScreen> {
   ProgrammeRepository programmeRepository = ProgrammeRepository();
   TextEditingController rechercheController = TextEditingController();
-
+  RoleRepository roleRepository = RoleRepository();
+  bool coach = false;
   List<Programme> programmes = [];
   bool chargement = true;
   String recherche = '';
@@ -44,14 +45,19 @@ class _ProgrammeListScreenState extends State<ProgrammeListScreen> {
 
   Future<void> chargerProgrammes() async {
     try {
-      List<Programme> resultat =
-      await programmeRepository.getProgrammesDuCoach();
+      bool estCoach = await roleRepository.estCoach();
+
+      // Coach : ses programmes. Athlète : tous les programmes.
+      List<Programme> resultat = estCoach
+          ? await programmeRepository.getProgrammesDuCoach()
+          : await programmeRepository.getTousLesProgrammes();
 
       if (!mounted) {
         return;
       }
 
       setState(() {
+        coach = estCoach;
         programmes = resultat;
         chargement = false;
       });
@@ -188,7 +194,7 @@ class _ProgrammeListScreenState extends State<ProgrammeListScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         barreRecherche(),
-        boutonCreer(),
+        if (coach) boutonCreer(),
         if (programmes.isEmpty)
           const Padding(
             padding: EdgeInsets.all(20),
