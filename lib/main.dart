@@ -14,6 +14,8 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/register_screen.dart';
 import 'features/auth/presentation/forgot_password_screen.dart';
+import 'features/nutrition/presentation/nutrition_navigation_screen.dart';
+import 'features/profil/presentation/profil_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +64,10 @@ class MyApp extends StatelessWidget {
         '/bas': (context) => const NavigationBasScreen(),
         '/connexion': (context) => const LoginScreen(),
         '/entrainement': (context) => const EntrainementScreen(),
+        '/nutrition': (context) => NutritionNavigationScreen(
+              idAthlete: Supabase.instance.client.auth.currentUser?.id ?? 'demo-athlete-id',
+            ),
+        '/profil': (context) => const ProfilScreen(),
         '/inscription': (context) => const RegisterScreen(),
         '/mot-de-passe-oublie': (context) => const ForgotPasswordScreen(),
       },

@@ -11,7 +11,7 @@ Future<void> main() async {
   try {
     await Supabase.initialize(
       url: SupabaseConfig.url,
-      publishableKey: SupabaseConfig.anonKey,
+      publishableKey: SupabaseConfig.clePublishable,
     );
   } catch (e) {
     // If Supabase is offline or credentials not set, the app will still run with demo data!

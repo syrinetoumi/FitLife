@@ -256,13 +256,40 @@ Widget construireDrawer(BuildContext context) {
           ),
         ),
 
+        // BLOC NUTRITION
+        Container(
+          margin: const EdgeInsets.only(
+            top: 20,
+            bottom: 8,
+          ),
+          child: const Text(
+            'NUTRITION',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.deepPurple,
+            ),
+          ),
+        ),
+
+        Card(
+          child: Column(
+            children: [
+              elementMenu(
+                context,
+                'Nutrition',
+                Icons.restaurant_menu,
+                '/nutrition',
+              ),
+            ],
+          ),
+        ),
+
         // BLOC NAVIGATION
         Container(
           margin: const EdgeInsets.only(
             top: 20,
             bottom: 8,
           ),
-
           child: const Text(
             'NAVIGATION',
             style: TextStyle(
@@ -292,9 +319,22 @@ Widget construireDrawer(BuildContext context) {
           ),
         ),
 
-        // SE DÉCONNECTER (carte séparée)
+        // VOIR PROFIL (carte séparée au-dessus de Se déconnecter)
         Container(
           margin: const EdgeInsets.only(top: 20),
+          child: Card(
+            child: elementMenu(
+              context,
+              'Mon Profil',
+              Icons.person,
+              '/profil',
+            ),
+          ),
+        ),
+
+        // SE DÉCONNECTER (carte séparée)
+        Container(
+          margin: const EdgeInsets.only(top: 10),
 
           child: Card(
             child: InkWell(

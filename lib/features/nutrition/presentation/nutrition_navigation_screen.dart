@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:coach_app/core/utils/outils.dart';
 import 'consultations/consultation_list_screen.dart';
 import 'programmes/programme_nutri_list_screen.dart';
 import 'suivi/suivi_dashboard_screen.dart';
@@ -62,6 +63,7 @@ class _NutritionNavigationScreenState extends State<NutritionNavigationScreen> {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
+      drawer: construireDrawer(context),
       body: _pages[_indexCourant],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _indexCourant,

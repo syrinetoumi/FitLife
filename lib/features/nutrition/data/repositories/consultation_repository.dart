@@ -55,13 +55,21 @@ class ConsultationRepository {
     final client = _client;
     if (client != null) {
       try {
-        final response = await client
-            .from('utilisateurs')
-            .select('id, nom, prenom')
-            .eq('role', 'NUTRITIONNISTE');
+        dynamic response;
+        try {
+          response = await client
+              .from('profiles')
+              .select('id, nom, prenom')
+              .eq('role', 'NUTRITIONNISTE');
+        } catch (_) {
+          response = await client
+              .from('utilisateurs')
+              .select('id, nom, prenom')
+              .eq('role', 'NUTRITIONNISTE');
+        }
 
-        if (response.isNotEmpty) {
-          return (response as List).map((row) {
+        if (response != null && (response as List).isNotEmpty) {
+          return (response).map((row) {
             final nomComplet = '${row['prenom'] ?? ''} ${row['nom'] ?? ''}'.trim();
             return NutritionnisteItem(
               id: row['id'].toString(),
