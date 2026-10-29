@@ -16,6 +16,9 @@ class ConsultationFormScreen extends StatefulWidget {
 }
 
 class _ConsultationFormScreenState extends State<ConsultationFormScreen> {
+  static const Color primaryBlue = Color(0xFF3843B8);
+  static const Color backgroundLight = Color(0xFFF7F8FC);
+
   final _formKey = GlobalKey<FormState>();
   final ConsultationRepository _repository = ConsultationRepository();
 
@@ -61,6 +64,18 @@ class _ConsultationFormScreenState extends State<ConsultationFormScreen> {
       initialDate: _dateSelectionnee,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 180)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: primaryBlue,
+              onPrimary: Colors.white,
+              onSurface: Colors.black87,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (choix != null) {
       setState(() => _dateSelectionnee = choix);
@@ -71,6 +86,18 @@ class _ConsultationFormScreenState extends State<ConsultationFormScreen> {
     final TimeOfDay? choix = await showTimePicker(
       context: context,
       initialTime: _heureSelectionnee,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: primaryBlue,
+              onPrimary: Colors.white,
+              onSurface: Colors.black87,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (choix != null) {
       setState(() => _heureSelectionnee = choix);
@@ -100,7 +127,10 @@ class _ConsultationFormScreenState extends State<ConsultationFormScreen> {
       await _repository.demanderConsultation(nouvelleConsultation);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Demande de consultation envoyée avec succès !')),
+          const SnackBar(
+            content: Text('Demande de consultation enregistrée avec succès !'),
+            backgroundColor: primaryBlue,
+          ),
         );
         Navigator.pop(context, true);
       }
@@ -121,101 +151,186 @@ class _ConsultationFormScreenState extends State<ConsultationFormScreen> {
         '${_heureSelectionnee.hour.toString().padLeft(2, '0')}:${_heureSelectionnee.minute.toString().padLeft(2, '0')}';
 
     return Scaffold(
+      backgroundColor: backgroundLight,
       appBar: AppBar(
-        title: const Text('Prendre une consultation'),
-        backgroundColor: Colors.deepPurple.shade50,
+        title: const Text(
+          'Prendre un rendez-vous',
+          style: TextStyle(
+            fontStyle: FontStyle.italic,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: _chargement
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: primaryBlue))
           : Padding(
               padding: const EdgeInsets.all(16.0),
               child: Form(
                 key: _formKey,
                 child: ListView(
                   children: [
-                    Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Row(
+                    Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(6),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: primaryBlue.withAlpha(20),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.calendar_month, color: primaryBlue, size: 24),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.medical_services, color: Colors.deepPurple),
-                                SizedBox(width: 8),
+                                const Text(
+                                  'Consultation Diététique',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
                                 Text(
-                                  'Métier 1 : Prise de rendez-vous',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  'Sélectionnez votre praticien, fixez le créneau et décrivez votre objectif.',
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Sélectionnez votre praticien, la date et formulez votre motif.',
-                              style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
 
                     // 1. Choix du nutritionniste
-                    const Text('1. Nutritionniste', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 6),
+                    const Text(
+                      '1. NUTRITIONNISTE *',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 8),
                     DropdownButtonFormField<NutritionnisteItem>(
                       initialValue: _nutritionnisteSelectionne,
                       items: _nutritionnistes.map((n) {
                         return DropdownMenuItem(
                           value: n,
-                          child: Text('${n.nom} (${n.specialite})'),
+                          child: Text('${n.nom} (${n.specialite})', style: const TextStyle(fontSize: 14)),
                         );
                       }).toList(),
                       onChanged: (val) => setState(() => _nutritionnisteSelectionne = val),
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: primaryBlue, width: 2),
+                        ),
+                        prefixIcon: const Icon(Icons.person, color: primaryBlue),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
 
                     // 2. Choix de la date et heure
-                    const Text('2. Date & Heure', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 6),
+                    const Text(
+                      '2. DATE & HEURE *',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: _choisirDate,
-                            icon: const Icon(Icons.calendar_today, size: 18),
-                            label: Text(dateTexte),
-                            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                            icon: const Icon(Icons.calendar_today, size: 18, color: primaryBlue),
+                            label: Text(
+                              dateTexte,
+                              style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: BorderSide(color: Colors.grey.shade300),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: _choisirHeure,
-                            icon: const Icon(Icons.access_time, size: 18),
-                            label: Text(heureTexte),
-                            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                            icon: const Icon(Icons.access_time, size: 18, color: primaryBlue),
+                            label: Text(
+                              heureTexte,
+                              style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: BorderSide(color: Colors.grey.shade300),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
 
                     // 3. Motif
-                    const Text('3. Motif de la consultation', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 6),
+                    const Text(
+                      '3. MOTIF DU RENDEZ-VOUS *',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 8),
                     TextFormField(
                       controller: _motifController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
+                      maxLines: 4,
+                      decoration: InputDecoration(
                         hintText: 'Ex : Établir un plan pour perte de 8 kg coordonné avec mes entraînements...',
-                        border: OutlineInputBorder(),
+                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: primaryBlue, width: 2),
+                        ),
                       ),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
@@ -224,18 +339,31 @@ class _ConsultationFormScreenState extends State<ConsultationFormScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
 
                     // Bouton d'envoi
-                    ElevatedButton.icon(
-                      onPressed: _soumettre,
-                      icon: const Icon(Icons.send),
-                      label: const Text('Envoyer la demande de consultation'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _soumettre,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          elevation: 0,
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'ENVOYER LA DEMANDE',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 0.8),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(Icons.arrow_forward_ios, size: 14),
+                          ],
+                        ),
                       ),
                     ),
                   ],

@@ -126,12 +126,21 @@ class _RepasFormScreenState extends State<RepasFormScreen> {
     Navigator.pop(context, repas);
   }
 
+  static const Color primaryBlue = Color(0xFF3843B8);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F8FC),
       appBar: AppBar(
-        title: Text(widget.repasExistant == null ? 'Composer un Repas' : 'Modifier le Repas'),
-        backgroundColor: Colors.deepPurple.shade50,
+        title: Text(
+          widget.repasExistant == null ? 'Composer un repas' : 'Modifier le repas',
+          style: const TextStyle(fontStyle: FontStyle.italic, fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -179,14 +188,14 @@ class _RepasFormScreenState extends State<RepasFormScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple.shade50,
+                  color: primaryBlue.withAlpha(15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _macroTotal('$_totalCalories kcal', 'Total Énergie', Colors.deepPurple),
-                    _macroTotal('${_totalProteines.toStringAsFixed(1)}g', 'Protéines', Colors.blue),
+                    _macroTotal('$_totalCalories kcal', 'Total Énergie', primaryBlue),
+                    _macroTotal('${_totalProteines.toStringAsFixed(1)}g', 'Protéines', Colors.blue.shade700),
                     _macroTotal('${_totalGlucides.toStringAsFixed(1)}g', 'Glucides', Colors.amber.shade900),
                     _macroTotal('${_totalLipides.toStringAsFixed(1)}g', 'Lipides', Colors.red.shade400),
                   ],
@@ -200,19 +209,26 @@ class _RepasFormScreenState extends State<RepasFormScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: _ouvrirRechercheOpenFoodFacts,
-                      icon: const Icon(Icons.qr_code_scanner),
-                      label: const Text('Open Food Facts'),
+                      icon: const Icon(Icons.search),
+                      label: const Text('Rechercher un aliment'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal.shade700,
+                        backgroundColor: primaryBlue,
                         foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
                   ),
                   const SizedBox(width: 10),
                   OutlinedButton.icon(
                     onPressed: _ajouterAlimentManuel,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Manuel'),
+                    icon: const Icon(Icons.add, color: primaryBlue),
+                    label: const Text('Manuel', style: TextStyle(color: primaryBlue)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: primaryBlue),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
                   ),
                 ],
               ),
@@ -226,10 +242,11 @@ class _RepasFormScreenState extends State<RepasFormScreen> {
                   padding: const EdgeInsets.all(20),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
+                    color: Colors.white,
                     border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text('Aucun aliment ajouté. Utilisez le scanner ou le catalogue.'),
+                  child: const Text('Aucun aliment ajouté. Utilisez la recherche ou le scan code-barres.'),
                 ),
 
               ..._aliments.asMap().entries.map((entry) {
@@ -238,6 +255,7 @@ class _RepasFormScreenState extends State<RepasFormScreen> {
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   child: ListTile(
                     title: Text(a.nom, style: const TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: Text('${a.quantiteGrammes.round()}g • ${a.calories} kcal • P:${a.proteines}g G:${a.glucides}g L:${a.lipides}g'),
@@ -255,9 +273,10 @@ class _RepasFormScreenState extends State<RepasFormScreen> {
                 icon: const Icon(Icons.check),
                 label: const Text('Enregistrer ce repas'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
+                  backgroundColor: primaryBlue,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ],

@@ -6,7 +6,13 @@ import '../models/enums_nutrition.dart';
 /// Gère la persistance Supabase (table "dossier_nutritionnel") avec un mode de secours local
 /// si Supabase n'est pas encore configuré ou inaccessible.
 class DossierRepository {
-  final SupabaseClient _client = Supabase.instance.client;
+  SupabaseClient? get _client {
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      return null;
+    }
+  }
 
   // Données de secours en mémoire (permet de tester l'application avant la création des tables Supabase)
   static final Map<String, DossierNutritionnel> _dossiersLocaux = {
@@ -26,18 +32,21 @@ class DossierRepository {
 
   /// Récupère ou initialise le dossier nutritionnel pour un athlète donné
   Future<DossierNutritionnel> getDossier(String idAthlete) async {
-    try {
-      final response = await _client
-          .from('dossier_nutritionnel')
-          .select()
-          .eq('id_athlete', idAthlete)
-          .maybeSingle();
+    final client = _client;
+    if (client != null) {
+      try {
+        final response = await client
+            .from('dossier_nutritionnel')
+            .select()
+            .eq('id_athlete', idAthlete)
+            .maybeSingle();
 
-      if (response != null) {
-        return DossierNutritionnel.fromMap(response);
+        if (response != null) {
+          return DossierNutritionnel.fromMap(response);
+        }
+      } catch (_) {
+        // Supabase non configuré ou table non encore créée
       }
-    } catch (_) {
-      // Supabase non configuré ou table non encore créée
     }
 
     // Retour du dossier en mémoire ou création d'un dossier par défaut
@@ -65,21 +74,43 @@ class DossierRepository {
   Future<void> enregistrerDossier(DossierNutritionnel dossier) async {
     _dossiersLocaux[dossier.idAthlete] = dossier;
 
-    try {
-      await _client.from('dossier_nutritionnel').upsert(
-        dossier.toMap()..['id_athlete'] = dossier.idAthlete,
-        onConflict: 'id_athlete',
-      );
-    } catch (_) {
-      // Ignoré si Supabase n'est pas encore prêt
+    final client = _client;
+    if (client != null) {
+      try {
+        await client.from('dossier_nutritionnel').upsert(
+          dossier.toMap()..['id_athlete'] = dossier.idAthlete,
+          onConflict: 'id_athlete',
+        );
+      } catch (_) {
+        // Ignoré si Supabase n'est pas encore prêt
+      }
     }
   }
 
-  /// Met à jour rapidement le poids actuel de l'athlète (Métier 3 : Suivi)
+  /// Met à jour rapidement le poids actuel de l'athlète
   Future<DossierNutritionnel> enregistrerPesee(String idAthlete, double nouveauPoids) async {
     final existant = await getDossier(idAthlete);
     final maj = existant.copyWith(
       poidsActuel: nouveauPoids,
+      dateMiseAJour: DateTime.now(),
+    );
+
+    await enregistrerDossier(maj);
+    return maj;
+  }
+
+  /// Met à jour les métriques de poids : initial, actuel et objectif cible
+  Future<DossierNutritionnel> mettreAJourObjectifsPoids(
+    String idAthlete, {
+    required double poidsInitial,
+    required double poidsActuel,
+    required double poidsCible,
+  }) async {
+    final existant = await getDossier(idAthlete);
+    final maj = existant.copyWith(
+      poidsInitial: poidsInitial,
+      poidsActuel: poidsActuel,
+      poidsCible: poidsCible,
       dateMiseAJour: DateTime.now(),
     );
 

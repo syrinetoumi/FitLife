@@ -149,6 +149,8 @@ class _ProgrammeNutriFormScreenState extends State<ProgrammeNutriFormScreen> {
     }
   }
 
+  static const Color primaryBlue = Color(0xFF3843B8);
+
   @override
   Widget build(BuildContext context) {
     final cal = int.tryParse(_caloriesController.text) ?? 0;
@@ -158,9 +160,16 @@ class _ProgrammeNutriFormScreenState extends State<ProgrammeNutriFormScreen> {
     final totalCalMacros = (prot * 4) + (gluc * 4) + (lip * 9);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F8FC),
       appBar: AppBar(
-        title: Text(widget.programmeExistant == null ? 'Nouveau Programme Nutritionnel' : 'Modifier le Programme'),
-        backgroundColor: Colors.deepPurple.shade50,
+        title: Text(
+          widget.programmeExistant == null ? 'Ajouter un programme' : 'Modifier le programme',
+          style: const TextStyle(fontStyle: FontStyle.italic, fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: Form(
         key: _formKey,
@@ -169,17 +178,18 @@ class _ProgrammeNutriFormScreenState extends State<ProgrammeNutriFormScreen> {
           children: [
             Card(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              color: Colors.deepPurple.shade50,
+              color: primaryBlue.withAlpha(15),
+              elevation: 0,
               child: const Padding(
                 padding: EdgeInsets.all(14.0),
                 child: Row(
                   children: [
-                    Icon(Icons.edit_note, color: Colors.deepPurple, size: 28),
+                    Icon(Icons.edit_note, color: primaryBlue, size: 28),
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Métier 2 : Le nutritionniste définit l\'objectif, les calories, la répartition des macronutriments et les repas.',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                        'Définissez les objectifs, calories cibles, répartition des macronutriments et repas.',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black87),
                       ),
                     ),
                   ],
@@ -225,7 +235,11 @@ class _ProgrammeNutriFormScreenState extends State<ProgrammeNutriFormScreen> {
                   onPressed: _calculerMacrosAutomatiquement,
                   icon: const Icon(Icons.auto_awesome, size: 16),
                   label: const Text('Calculer'),
-                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+                  ),
                 ),
               ],
             ),
@@ -271,12 +285,12 @@ class _ProgrammeNutriFormScreenState extends State<ProgrammeNutriFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Budget alimentaire (pour Frankfurter API)
+            // Budget alimentaire
             TextFormField(
               controller: _budgetController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Budget alimentaire estimé (API Frankfurter)',
+                labelText: 'Budget alimentaire estimé',
                 prefixIcon: Icon(Icons.euro),
                 suffixText: 'EUR',
                 border: OutlineInputBorder(),
@@ -291,8 +305,8 @@ class _ProgrammeNutriFormScreenState extends State<ProgrammeNutriFormScreen> {
                 const Text('Repas du programme :', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 TextButton.icon(
                   onPressed: _ajouterRepas,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Ajouter un repas'),
+                  icon: const Icon(Icons.add, color: primaryBlue),
+                  label: const Text('Ajouter un repas', style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -306,7 +320,7 @@ class _ProgrammeNutriFormScreenState extends State<ProgrammeNutriFormScreen> {
               final r = entry.value;
               return Card(
                 child: ListTile(
-                  leading: const Icon(Icons.restaurant_menu, color: Colors.deepPurple),
+                  leading: const Icon(Icons.restaurant_menu, color: primaryBlue),
                   title: Text(r.nom),
                   subtitle: Text('${formatEnumNutrition(r.type)} • ${r.calories} kcal • P:${r.proteinesG}g'),
                   trailing: IconButton(
@@ -323,9 +337,10 @@ class _ProgrammeNutriFormScreenState extends State<ProgrammeNutriFormScreen> {
               icon: const Icon(Icons.save),
               label: const Text('Enregistrer le programme nutritionnel'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
+                backgroundColor: primaryBlue,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
           ],

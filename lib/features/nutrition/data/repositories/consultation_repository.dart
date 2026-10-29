@@ -18,7 +18,13 @@ class NutritionnisteItem {
 /// Repository pour la gestion des consultations (Entité 2 et Métier 1).
 /// Gère les demandes de consultation par l'athlète et les validations/refus du praticien.
 class ConsultationRepository {
-  final SupabaseClient _client = Supabase.instance.client;
+  SupabaseClient? get _client {
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      return null;
+    }
+  }
 
   // Données de secours en mémoire
   static final List<Consultation> _consultationsLocales = [
@@ -46,23 +52,26 @@ class ConsultationRepository {
 
   /// Liste des nutritionnistes disponibles pour la prise de rendez-vous
   Future<List<NutritionnisteItem>> getNutritionnistes() async {
-    try {
-      final response = await _client
-          .from('utilisateurs')
-          .select('id, nom, prenom')
-          .eq('role', 'NUTRITIONNISTE');
+    final client = _client;
+    if (client != null) {
+      try {
+        final response = await client
+            .from('utilisateurs')
+            .select('id, nom, prenom')
+            .eq('role', 'NUTRITIONNISTE');
 
-      if (response.isNotEmpty) {
-        return (response as List).map((row) {
-          final nomComplet = '${row['prenom'] ?? ''} ${row['nom'] ?? ''}'.trim();
-          return NutritionnisteItem(
-            id: row['id'].toString(),
-            nom: nomComplet.isEmpty ? 'Nutritionniste' : nomComplet,
-          );
-        }).toList();
+        if (response.isNotEmpty) {
+          return (response as List).map((row) {
+            final nomComplet = '${row['prenom'] ?? ''} ${row['nom'] ?? ''}'.trim();
+            return NutritionnisteItem(
+              id: row['id'].toString(),
+              nom: nomComplet.isEmpty ? 'Nutritionniste' : nomComplet,
+            );
+          }).toList();
+        }
+      } catch (_) {
+        // Supabase non accessible ou table différente
       }
-    } catch (_) {
-      // Supabase non accessible ou table différente
     }
 
     // Liste par défaut pour démonstration
@@ -75,18 +84,21 @@ class ConsultationRepository {
 
   /// Récupère toutes les consultations d'un athlète
   Future<List<Consultation>> getConsultationsAthlete(String idAthlete) async {
-    try {
-      final response = await _client
-          .from('consultation_nutrition')
-          .select()
-          .eq('id_athlete', idAthlete)
-          .order('date_consultation', ascending: true);
+    final client = _client;
+    if (client != null) {
+      try {
+        final response = await client
+            .from('consultation_nutrition')
+            .select()
+            .eq('id_athlete', idAthlete)
+            .order('date_consultation', ascending: true);
 
-      if (response.isNotEmpty) {
-        return (response as List).map((r) => Consultation.fromMap(r)).toList();
+        if (response.isNotEmpty) {
+          return (response as List).map((r) => Consultation.fromMap(r)).toList();
+        }
+      } catch (_) {
+        // Mode de secours
       }
-    } catch (_) {
-      // Mode de secours
     }
 
     return _consultationsLocales.where((c) => c.idAthlete == idAthlete).toList();
@@ -94,18 +106,21 @@ class ConsultationRepository {
 
   /// Récupère toutes les consultations reçues par un nutritionniste
   Future<List<Consultation>> getConsultationsNutritionniste(String idNutritionniste) async {
-    try {
-      final response = await _client
-          .from('consultation_nutrition')
-          .select()
-          .eq('id_nutritionniste', idNutritionniste)
-          .order('date_consultation', ascending: true);
+    final client = _client;
+    if (client != null) {
+      try {
+        final response = await client
+            .from('consultation_nutrition')
+            .select()
+            .eq('id_nutritionniste', idNutritionniste)
+            .order('date_consultation', ascending: true);
 
-      if (response.isNotEmpty) {
-        return (response as List).map((r) => Consultation.fromMap(r)).toList();
+        if (response.isNotEmpty) {
+          return (response as List).map((r) => Consultation.fromMap(r)).toList();
+        }
+      } catch (_) {
+        // Mode de secours
       }
-    } catch (_) {
-      // Mode de secours
     }
 
     return _consultationsLocales.where((c) => c.idNutritionniste == idNutritionniste).toList();
@@ -122,10 +137,13 @@ class ConsultationRepository {
 
     _consultationsLocales.add(nouvelle);
 
-    try {
-      await _client.from('consultation_nutrition').insert(nouvelle.toMap());
-    } catch (_) {
-      // Ignoré en mode offline/développement
+    final client = _client;
+    if (client != null) {
+      try {
+        await client.from('consultation_nutrition').insert(nouvelle.toMap());
+      } catch (_) {
+        // Ignoré en mode offline/développement
+      }
     }
 
     return nouvelle;
@@ -145,27 +163,33 @@ class ConsultationRepository {
       );
     }
 
-    try {
-      final updateData = <String, dynamic>{'statut': nouveauStatut.name};
-      if (compteRendu != null) {
-        updateData['compte_rendu'] = compteRendu;
+    final client = _client;
+    if (client != null) {
+      try {
+        final updateData = <String, dynamic>{'statut': nouveauStatut.name};
+        if (compteRendu != null) {
+          updateData['compte_rendu'] = compteRendu;
+        }
+        await client
+            .from('consultation_nutrition')
+            .update(updateData)
+            .eq('id', idConsultation);
+      } catch (_) {
+        // Ignoré
       }
-      await _client
-          .from('consultation_nutrition')
-          .update(updateData)
-          .eq('id', idConsultation);
-    } catch (_) {
-      // Ignoré
     }
   }
 
   /// Supprimer une consultation
   Future<void> supprimer(String idConsultation) async {
     _consultationsLocales.removeWhere((c) => c.idConsultation == idConsultation);
-    try {
-      await _client.from('consultation_nutrition').delete().eq('id', idConsultation);
-    } catch (_) {
-      // Ignoré
+    final client = _client;
+    if (client != null) {
+      try {
+        await client.from('consultation_nutrition').delete().eq('id', idConsultation);
+      } catch (_) {
+        // Ignoré
+      }
     }
   }
 }

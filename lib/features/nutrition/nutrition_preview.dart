@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/config/supabase_config.dart';
 import 'presentation/nutrition_navigation_screen.dart';
 
 /// Standalone test runner for the Nutrition & Suivi module.
-/// Run with:
-///   flutter run -t lib/features/nutrition/nutrition_preview.dart -d edge
-///   or
-///   flutter run -t lib/features/nutrition/nutrition_preview.dart -d windows
-void main() {
+/// Initializes Supabase gracefully with automatic fallback to offline demo mode.
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await Supabase.initialize(
+      url: SupabaseConfig.url,
+      publishableKey: SupabaseConfig.anonKey,
+    );
+  } catch (e) {
+    // If Supabase is offline or credentials not set, the app will still run with demo data!
+    debugPrint('Note: Supabase non initialisé ou hors-ligne ($e). Mode démo actif.');
+  }
+
   runApp(const NutritionAppPreview());
 }
 

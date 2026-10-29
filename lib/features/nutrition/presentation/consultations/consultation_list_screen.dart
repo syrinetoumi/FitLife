@@ -19,9 +19,14 @@ class ConsultationListScreen extends StatefulWidget {
 }
 
 class _ConsultationListScreenState extends State<ConsultationListScreen> {
+  static const Color primaryBlue = Color(0xFF3843B8);
+  static const Color dangerRed = Color(0xFFD32F2F);
+  static const Color backgroundLight = Color(0xFFF7F8FC);
+
   final ConsultationRepository _repository = ConsultationRepository();
   List<Consultation> _consultations = [];
   bool _chargement = true;
+  String _filtreRecherche = '';
 
   @override
   void initState() {
@@ -43,13 +48,13 @@ class _ConsultationListScreenState extends State<ConsultationListScreen> {
   Color _couleurStatut(StatutConsultation statut) {
     switch (statut) {
       case StatutConsultation.DEMANDEE:
-        return Colors.orange;
+        return const Color(0xFFF57C00); // Orange
       case StatutConsultation.CONFIRMEE:
-        return Colors.green;
+        return const Color(0xFF2E7D32); // Green
       case StatutConsultation.TERMINEE:
-        return Colors.blue;
+        return primaryBlue; // Royal Blue
       case StatutConsultation.ANNULEE:
-        return Colors.red;
+        return dangerRed; // Red
     }
   }
 
@@ -61,18 +66,38 @@ class _ConsultationListScreenState extends State<ConsultationListScreen> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Compte-rendu de consultation'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Compte-rendu de consultation',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           content: TextField(
             controller: controller,
             maxLines: 4,
-            decoration: const InputDecoration(
-              hintText: 'Recommandations diététiques, plan validé...',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              hintText: 'Recommandations diététiques, plan nutritionnel validé...',
+              hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: primaryBlue, width: 2),
+              ),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Enregistrer')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annuler', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryBlue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Enregistrer'),
+            ),
           ],
         ),
       );
@@ -88,49 +113,117 @@ class _ConsultationListScreenState extends State<ConsultationListScreen> {
     _charger();
   }
 
-  Widget _construireCorps() {
-    if (_chargement) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_consultations.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+  Widget _ligneDetail({
+    required IconData icon,
+    required String label,
+    required String valeur,
+    bool isLast = false,
+  }) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.event_busy, size: 64, color: Colors.grey.shade400),
-              const SizedBox(height: 12),
-              const Text('Aucune consultation programmée.', style: TextStyle(fontSize: 16)),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final res = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (c) => ConsultationFormScreen(idAthlete: widget.idAthlete),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: primaryBlue.withAlpha(20),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: primaryBlue, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
-                  );
-                  if (res == true) _charger();
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Demander un rendez-vous'),
+                    const SizedBox(height: 2),
+                    Text(
+                      valeur,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         ),
-      );
+        if (!isLast) Divider(color: Colors.grey.shade200, height: 1),
+      ],
+    );
+  }
+
+  Widget _construireCorps() {
+    if (_chargement) {
+      return const Center(child: CircularProgressIndicator(color: primaryBlue));
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _consultations.length + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ElevatedButton.icon(
+    final consultationsFiltrees = _consultations.where((c) {
+      if (_filtreRecherche.isEmpty) return true;
+      final q = _filtreRecherche.toLowerCase();
+      return (c.nomNutritionniste ?? '').toLowerCase().contains(q) ||
+          c.motif.toLowerCase().contains(q) ||
+          c.statutTexte.toLowerCase().contains(q) ||
+          c.heureConsultation.toLowerCase().contains(q);
+    }).toList();
+
+    return Container(
+      color: backgroundLight,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        children: [
+          // ==========================================
+          // BARRE DE RECHERCHE PILL (Style Thème FitLife)
+          // ==========================================
+          Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: primaryBlue,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                const Icon(Icons.search, color: Colors.white70, size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: const InputDecoration(
+                      hintText: 'Rechercher une consultation',
+                      hintStyle: TextStyle(color: Colors.white70, fontSize: 14),
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
+                    onChanged: (val) => setState(() => _filtreRecherche = val.trim()),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // ==========================================
+          // BOUTON PRENDRE RENDEZ-VOUS (Bannière FitLife)
+          // ==========================================
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
               onPressed: () async {
                 final res = await Navigator.push(
                   context,
@@ -140,111 +233,232 @@ class _ConsultationListScreenState extends State<ConsultationListScreen> {
                 );
                 if (res == true) _charger();
               },
-              icon: const Icon(Icons.calendar_month),
-              label: const Text('Prendre une nouvelle consultation'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
+                backgroundColor: primaryBlue,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 0,
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'PRENDRE RENDEZ-VOUS',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 0.8),
+                  ),
+                  SizedBox(width: 6),
+                  Icon(Icons.arrow_forward_ios, size: 14),
+                ],
               ),
             ),
-          );
-        }
+          ),
+          const SizedBox(height: 16),
 
-        final c = _consultations[index - 1];
-        final couleur = _couleurStatut(c.statut);
-        final dateFormatee =
-            '${c.dateConsultation.day.toString().padLeft(2, '0')}/${c.dateConsultation.month.toString().padLeft(2, '0')}/${c.dateConsultation.year}';
-
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      c.nomNutritionniste ?? 'Nutritionniste',
-                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+          // ==========================================
+          // LISTE DES CONSULTATIONS OU EMPTY STATE
+          // ==========================================
+          if (consultationsFiltrees.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.event_busy, size: 56, color: Colors.grey.shade400),
+                  const SizedBox(height: 12),
+                  Text(
+                    _filtreRecherche.isEmpty
+                        ? 'Aucune consultation enregistrée'
+                        : 'Aucune consultation ne correspond à votre recherche',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: couleur.withAlpha(35),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: couleur),
-                      ),
-                      child: Text(
-                        c.statutTexte,
-                        style: TextStyle(color: couleur, fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today, size: 15, color: Colors.grey),
-                    const SizedBox(width: 6),
-                    Text(dateFormatee, style: const TextStyle(fontSize: 14)),
-                    const SizedBox(width: 14),
-                    const Icon(Icons.access_time, size: 15, color: Colors.grey),
-                    const SizedBox(width: 6),
-                    Text(c.heureConsultation, style: const TextStyle(fontSize: 14)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text('Motif : ${c.motif}', style: const TextStyle(fontSize: 14)),
-                if (c.compteRendu != null && c.compteRendu!.isNotEmpty) ...[
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Compte-rendu : ${c.compteRendu}',
-                      style: TextStyle(fontSize: 13, color: Colors.blue.shade900),
-                    ),
+                  Text(
+                    'Prenez rendez-vous avec votre nutritionniste pour concevoir ou ajuster votre programme.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                    textAlign: TextAlign.center,
                   ),
                 ],
-                const SizedBox(height: 12),
-                // Actions selon le rôle/statut (Métier 1 : confirmer, refuser ou terminer)
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    if (c.estEnAttente) ...[
-                      OutlinedButton.icon(
-                        onPressed: () => _changerStatut(c, StatutConsultation.CONFIRMEE),
-                        icon: const Icon(Icons.check, size: 16, color: Colors.green),
-                        label: const Text('Confirmer', style: TextStyle(color: Colors.green)),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () => _changerStatut(c, StatutConsultation.ANNULEE),
-                        icon: const Icon(Icons.close, size: 16, color: Colors.red),
-                        label: const Text('Refuser', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                    if (c.estConfirmee)
-                      ElevatedButton.icon(
-                        onPressed: () => _changerStatut(c, StatutConsultation.TERMINEE),
-                        icon: const Icon(Icons.done_all, size: 16),
-                        label: const Text('Clôturer séance'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700, foregroundColor: Colors.white),
-                      ),
+              ),
+            )
+          else
+            ...consultationsFiltrees.map((c) {
+              final couleur = _couleurStatut(c.statut);
+              final dateFormatee =
+                  '${c.dateConsultation.day.toString().padLeft(2, '0')}/${c.dateConsultation.month.toString().padLeft(2, '0')}/${c.dateConsultation.year}';
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(8),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        );
-      },
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header de la carte: Praticien & Statut Pill
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: primaryBlue.withAlpha(25),
+                                child: const Icon(Icons.person, color: primaryBlue, size: 22),
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    c.nomNutritionniste ?? 'Nutritionniste',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Spécialiste nutrition',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: couleur.withAlpha(30),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: couleur, width: 1.2),
+                            ),
+                            child: Text(
+                              c.statutTexte,
+                              style: TextStyle(
+                                color: couleur,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Divider(color: Colors.grey.shade200, height: 1),
+
+                      // Lignes de détails au style FitLife
+                      _ligneDetail(
+                        icon: Icons.calendar_today,
+                        label: 'Date & Heure',
+                        valeur: '$dateFormatee à ${c.heureConsultation}',
+                      ),
+                      _ligneDetail(
+                        icon: Icons.chat_bubble_outline,
+                        label: 'Motif',
+                        valeur: c.motif,
+                        isLast: c.compteRendu == null || c.compteRendu!.isEmpty,
+                      ),
+                      if (c.compteRendu != null && c.compteRendu!.isNotEmpty)
+                        _ligneDetail(
+                          icon: Icons.assignment_outlined,
+                          label: 'Compte-rendu du nutritionniste',
+                          valeur: c.compteRendu!,
+                          isLast: true,
+                        ),
+
+                      const SizedBox(height: 14),
+
+                      // Boutons d'action
+                      if (c.estEnAttente)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _changerStatut(c, StatutConsultation.CONFIRMEE),
+                                icon: const Icon(Icons.check, size: 16),
+                                label: const Text('Confirmer'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2E7D32),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _changerStatut(c, StatutConsultation.ANNULEE),
+                                icon: const Icon(Icons.close, size: 16),
+                                label: const Text('Refuser'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: dangerRed,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      else if (c.estConfirmee)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _changerStatut(c, StatutConsultation.TERMINEE),
+                                icon: const Icon(Icons.done_all, size: 16),
+                                label: const Text('Clôturer la séance'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryBlue,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            ElevatedButton.icon(
+                              onPressed: () => _changerStatut(c, StatutConsultation.ANNULEE),
+                              icon: const Icon(Icons.cancel, size: 16),
+                              label: const Text('Annuler'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: dangerRed,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 
@@ -255,9 +469,20 @@ class _ConsultationListScreenState extends State<ConsultationListScreen> {
     }
 
     return Scaffold(
+      backgroundColor: backgroundLight,
       appBar: AppBar(
-        title: const Text('Consultations Nutrition'),
-        backgroundColor: Colors.deepPurple.shade50,
+        title: const Text(
+          'Consultations',
+          style: TextStyle(
+            fontStyle: FontStyle.italic,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: _construireCorps(),
     );

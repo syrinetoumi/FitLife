@@ -114,7 +114,7 @@ class _AlimentSearchScreenState extends State<AlimentSearchScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.restaurant, color: Colors.deepPurple),
+                      const Icon(Icons.restaurant, color: primaryBlue),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -169,13 +169,13 @@ class _AlimentSearchScreenState extends State<AlimentSearchScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.deepPurple.shade50,
+                      color: primaryBlue.withAlpha(20),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _infoNutri('${portion.calories} kcal', 'Énergie', Colors.deepPurple),
+                        _infoNutri('${portion.calories} kcal', 'Énergie', primaryBlue),
                         _infoNutri('${portion.proteines}g', 'Protéines', Colors.blue),
                         _infoNutri('${portion.glucides}g', 'Glucides', Colors.amber.shade800),
                         _infoNutri('${portion.lipides}g', 'Lipides', Colors.red.shade400),
@@ -192,7 +192,7 @@ class _AlimentSearchScreenState extends State<AlimentSearchScreen> {
                     icon: const Icon(Icons.check),
                     label: const Text('Valider et ajouter au repas'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
+                      backgroundColor: primaryBlue,
                       foregroundColor: Colors.white,
                       minimumSize: const Size(double.infinity, 50),
                     ),
@@ -232,12 +232,21 @@ class _AlimentSearchScreenState extends State<AlimentSearchScreen> {
     }
   }
 
+  static const Color primaryBlue = Color(0xFF3843B8);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F8FC),
       appBar: AppBar(
-        title: const Text('Open Food Facts (API 1)'),
-        backgroundColor: Colors.deepPurple.shade50,
+        title: const Text(
+          'Recherche d\'aliments',
+          style: TextStyle(fontStyle: FontStyle.italic, fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -326,7 +335,7 @@ class _AlimentSearchScreenState extends State<AlimentSearchScreen> {
                                 errorBuilder: (context, error, stackTrace) => const Icon(Icons.fastfood, size: 40),
                               ),
                             )
-                          : const Icon(Icons.fastfood, color: Colors.deepPurple, size: 36),
+                          : const Icon(Icons.fastfood, color: primaryBlue, size: 36),
                       title: Text(
                         aliment.nom,
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -353,7 +362,7 @@ class _AlimentSearchScreenState extends State<AlimentSearchScreen> {
                                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
                               ),
                             ),
-                          const Icon(Icons.add_circle, color: Colors.deepPurple),
+                          const Icon(Icons.add_circle, color: primaryBlue),
                         ],
                       ),
                       onTap: () => _selectionnerAliment(aliment),

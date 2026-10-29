@@ -22,6 +22,8 @@ class SuiviDashboardScreen extends StatefulWidget {
 }
 
 class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
+  static const Color primaryBlue = Color(0xFF3843B8);
+
   final DossierRepository _dossierRepository = DossierRepository();
   final ProgrammeNutriRepository _programmeRepository = ProgrammeNutriRepository();
   final FrankfurterService _frankfurter = FrankfurterService();
@@ -30,7 +32,7 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
   ProgrammeNutritionnel? _programmeActif;
   bool _chargement = true;
 
-  // Simulateur de conversion de budget Frankfurter (API 2)
+  // Simulateur de conversion de devises
   final TextEditingController _budgetEurController = TextEditingController(text: '50');
   double _budgetConvertiTnd = 169.0;
   bool _enConversion = false;
@@ -75,28 +77,95 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
     }
   }
 
-  Future<void> _ouvrirDialoguePesee() async {
+  /// Dialogue permettant de modifier à la fois le poids initial, le poids actuel et l'objectif cible
+  Future<void> _ouvrirDialogueModificationPoids() async {
     if (_dossier == null) return;
-    final controller = TextEditingController(text: _dossier!.poidsActuel.toString());
+
+    final initialCtrl = TextEditingController(text: _dossier!.poidsInitial.toString());
+    final actuelCtrl = TextEditingController(text: _dossier!.poidsActuel.toString());
+    final cibleCtrl = TextEditingController(text: _dossier!.poidsCible.toString());
+    final formKey = GlobalKey<FormState>();
 
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Nouvelle pesée (kg)'),
-        content: TextField(
-          controller: controller,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Poids actuel',
-            suffixText: 'kg',
-            border: OutlineInputBorder(),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.monitor_weight_outlined, color: primaryBlue),
+            SizedBox(width: 8),
+            Text(
+              'Modifier le suivi du poids',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Ajustez vos métriques de départ, de pesée actuelle et votre objectif cible.',
+                  style: TextStyle(fontSize: 13, color: Colors.black54),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: initialCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Poids initial (kg)',
+                    prefixIcon: Icon(Icons.history, color: primaryBlue),
+                    suffixText: 'kg',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) => double.tryParse(v ?? '') == null ? 'Valeur invalide' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: actuelCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Poids actuel (kg)',
+                    prefixIcon: Icon(Icons.scale, color: primaryBlue),
+                    suffixText: 'kg',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) => double.tryParse(v ?? '') == null ? 'Valeur invalide' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: cibleCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Objectif cible (kg)',
+                    prefixIcon: Icon(Icons.flag_outlined, color: primaryBlue),
+                    suffixText: 'kg',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) => double.tryParse(v ?? '') == null ? 'Valeur invalide' : null,
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler', style: TextStyle(color: Colors.black54)),
+          ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple, foregroundColor: Colors.white),
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.pop(ctx, true);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryBlue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             child: const Text('Enregistrer'),
           ),
         ],
@@ -104,22 +173,29 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
     );
 
     if (ok == true) {
-      final nouveau = double.tryParse(controller.text);
-      if (nouveau != null && nouveau > 0) {
-        final maj = await _dossierRepository.enregistrerPesee(widget.idAthlete, nouveau);
-        setState(() => _dossier = maj);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Poids mis à jour avec succès !')),
-          );
-        }
+      final pInit = double.tryParse(initialCtrl.text) ?? _dossier!.poidsInitial;
+      final pActuel = double.tryParse(actuelCtrl.text) ?? _dossier!.poidsActuel;
+      final pCible = double.tryParse(cibleCtrl.text) ?? _dossier!.poidsCible;
+
+      final maj = await _dossierRepository.mettreAJourObjectifsPoids(
+        widget.idAthlete,
+        poidsInitial: pInit,
+        poidsActuel: pActuel,
+        poidsCible: pCible,
+      );
+
+      setState(() => _dossier = maj);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Objectifs et pesée mis à jour avec succès !')),
+        );
       }
     }
   }
 
   Widget _construireCorps() {
     if (_chargement) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: primaryBlue));
     }
 
     if (_dossier == null) {
@@ -137,12 +213,12 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         // ==========================================
-        // MÉTIER 3 : SUIVI NUTRITIONNEL DU POIDS
+        // 1. CARTE SUIVI DU POIDS & PROGRESSION
         // ==========================================
         Card(
           elevation: 3,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          color: Colors.deepPurple,
+          color: primaryBlue,
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
@@ -152,19 +228,37 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'MÉTIER 3 : Suivi Nutritionnel',
+                      'Suivi du poids',
                       style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle, color: Colors.white),
-                      tooltip: 'Enregistrer une pesée',
-                      onPressed: _ouvrirDialoguePesee,
+                    InkWell(
+                      onTap: _ouvrirDialogueModificationPoids,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(45),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.edit, color: Colors.white, size: 14),
+                            SizedBox(width: 4),
+                            Text(
+                              'Modifier',
+                              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 4),
                 Text(
                   'Objectif : ${formatEnumNutrition(dossier.objectif)}',
-                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
 
@@ -176,7 +270,7 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
                     const Icon(Icons.arrow_forward, color: Colors.white70, size: 20),
                     _blocPoids('Poids Actuel', '${dossier.poidsActuel} kg', Icons.scale, estActuel: true),
                     const Icon(Icons.arrow_forward, color: Colors.white70, size: 20),
-                    _blocPoids('Objectif Cible', '${dossier.poidsCible} kg', Icons.flag),
+                    _blocPoids('Objectif Cible', '${dossier.poidsCible} kg', Icons.flag_outlined),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -197,7 +291,7 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
                   borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(
                     value: (dossier.progressionPourcentage / 100.0).clamp(0.0, 1.0),
-                    minHeight: 12,
+                    minHeight: 10,
                     backgroundColor: Colors.white24,
                     valueColor: const AlwaysStoppedAnimation<Color>(Colors.greenAccent),
                   ),
@@ -208,10 +302,14 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Reste : ${dossier.poidsRestantKg.toStringAsFixed(1)} kg',
-                        style: const TextStyle(color: Colors.white, fontSize: 13)),
-                    Text('~ ${analyse['semainesEstimees']} semaines estimées',
-                        style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                    Text(
+                      'Reste : ${dossier.poidsRestantKg.toStringAsFixed(1)} kg',
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                    Text(
+                      '~ ${analyse['semainesEstimees']} semaines estimées',
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
                   ],
                 ),
                 if (dossier.imc != null) ...[
@@ -232,7 +330,7 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
         const SizedBox(height: 16),
 
         // ==========================================
-        // MÉTIER 4 : SUIVI COMBINÉ ENTRAÎNEMENT + NUTRITION
+        // 2. COORDINATION ENTRAÎNEMENT & NUTRITION
         // ==========================================
         Card(
           elevation: 2,
@@ -246,16 +344,25 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(8)),
-                      child: const Icon(Icons.sync_alt, color: Colors.orange),
+                      decoration: BoxDecoration(
+                        color: primaryBlue.withAlpha(20),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.sync_alt, color: primaryBlue),
                     ),
                     const SizedBox(width: 10),
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('MÉTIER 4 : Suivi Combiné', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          Text('Coordination : Athlète ↔ Coach ↔ Nutritionniste', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(
+                            'Coordination Entraînement & Nutrition',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'Synergie : Athlète ↔ Coach ↔ Nutritionniste',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
                         ],
                       ),
                     ),
@@ -263,37 +370,35 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
                 ),
                 const SizedBox(height: 14),
 
-                // Rôles croisés
                 _ligneCoordination(
-                  'COACH (Entraînement)',
+                  'Coach (Entraînement)',
                   bilan.roleCoachApport,
                   Icons.fitness_center,
-                  Colors.blue,
+                  primaryBlue,
                 ),
                 const SizedBox(height: 10),
                 _ligneCoordination(
-                  'NUTRITIONNISTE (Alimentation)',
+                  'Nutritionniste (Alimentation)',
                   bilan.roleNutritionnisteApport,
                   Icons.restaurant,
-                  Colors.green,
+                  Colors.teal,
                 ),
                 const SizedBox(height: 12),
 
-                // Bilan de synergie
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.deepPurple.shade50,
+                    color: primaryBlue.withAlpha(15),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.verified, color: Colors.deepPurple),
+                      const Icon(Icons.verified, color: primaryBlue),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           '${bilan.statutCoordination} : ${bilan.conseilSynthese}',
-                          style: TextStyle(fontSize: 13, color: Colors.deepPurple.shade900),
+                          style: const TextStyle(fontSize: 13, color: primaryBlue, fontWeight: FontWeight.w500),
                         ),
                       ),
                     ],
@@ -306,7 +411,7 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
         const SizedBox(height: 16),
 
         // ==========================================
-        // API 2 : CONVERTISSEUR DE DEVISES FRANKFURTER
+        // 3. CONVERSION DE DEVISES
         // ==========================================
         Card(
           elevation: 2,
@@ -328,7 +433,7 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('API 2 : Frankfurter (Conversion Devises)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                          Text('Conversion de devises', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                           Text('Gestion du budget alimentaire (EUR ↔ TND)', style: TextStyle(fontSize: 12, color: Colors.grey)),
                         ],
                       ),
@@ -356,9 +461,10 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
                     ElevatedButton(
                       onPressed: _convertirBudget,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
+                        backgroundColor: primaryBlue,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: _enConversion
                           ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
@@ -369,14 +475,14 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(color: primaryBlue.withAlpha(12), borderRadius: BorderRadius.circular(8)),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('Équivalent estimé en TND :', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                       Text(
                         '${_budgetConvertiTnd.toStringAsFixed(2)} DT',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryBlue),
                       ),
                     ],
                   ),
@@ -431,9 +537,15 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
     if (widget.integre) return _construireCorps();
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F8FC),
       appBar: AppBar(
-        title: const Text('Suivi Nutritionnel & Combiné'),
-        backgroundColor: Colors.deepPurple.shade50,
+        title: const Text(
+          'Suivi Nutritionnel',
+          style: TextStyle(fontStyle: FontStyle.italic, fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
       ),
       body: _construireCorps(),
     );

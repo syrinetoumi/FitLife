@@ -5,7 +5,13 @@ import '../models/repas.dart';
 
 /// Repository pour la gestion des Programmes Nutritionnels et des Repas (Entités 3 & 4, Métier 2).
 class ProgrammeNutriRepository {
-  final SupabaseClient _client = Supabase.instance.client;
+  SupabaseClient? get _client {
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      return null;
+    }
+  }
 
   // Données de démonstration locales
   static final List<ProgrammeNutritionnel> _programmesLocaux = [
@@ -147,18 +153,21 @@ class ProgrammeNutriRepository {
 
   /// Récupère tous les programmes d'un dossier
   Future<List<ProgrammeNutritionnel>> getProgrammesDuDossier(String idDossier) async {
-    try {
-      final response = await _client
-          .from('programme_nutritionnel')
-          .select()
-          .eq('id_dossier', idDossier)
-          .order('date_debut', ascending: false);
+    final client = _client;
+    if (client != null) {
+      try {
+        final response = await client
+            .from('programme_nutritionnel')
+            .select()
+            .eq('id_dossier', idDossier)
+            .order('date_debut', ascending: false);
 
-      if (response.isNotEmpty) {
-        return (response as List).map((p) => ProgrammeNutritionnel.fromMap(p)).toList();
+        if (response.isNotEmpty) {
+          return (response as List).map((p) => ProgrammeNutritionnel.fromMap(p)).toList();
+        }
+      } catch (_) {
+        // Fallback
       }
-    } catch (_) {
-      // Fallback
     }
 
     return _programmesLocaux.where((p) => p.idDossier == idDossier).toList();
@@ -166,18 +175,21 @@ class ProgrammeNutriRepository {
 
   /// Récupère les repas d'un programme
   Future<List<Repas>> getRepasDuProgramme(String idProgramme) async {
-    try {
-      final response = await _client
-          .from('repas')
-          .select()
-          .eq('id_programme', idProgramme)
-          .order('ordre', ascending: true);
+    final client = _client;
+    if (client != null) {
+      try {
+        final response = await client
+            .from('repas')
+            .select()
+            .eq('id_programme', idProgramme)
+            .order('ordre', ascending: true);
 
-      if (response.isNotEmpty) {
-        return (response as List).map((r) => Repas.fromMap(r)).toList();
+        if (response.isNotEmpty) {
+          return (response as List).map((r) => Repas.fromMap(r)).toList();
+        }
+      } catch (_) {
+        // Fallback
       }
-    } catch (_) {
-      // Fallback
     }
 
     return _repasLocaux.where((r) => r.idProgramme == idProgramme).toList();
@@ -196,10 +208,13 @@ class ProgrammeNutriRepository {
 
     _programmesLocaux.insert(0, nouveauProg);
 
-    try {
-      await _client.from('programme_nutritionnel').insert(nouveauProg.toMap());
-    } catch (_) {
-      // Ignoré si Supabase pas encore prêt
+    final client = _client;
+    if (client != null) {
+      try {
+        await client.from('programme_nutritionnel').insert(nouveauProg.toMap());
+      } catch (_) {
+        // Ignoré si Supabase pas encore prêt
+      }
     }
 
     for (final r in repas) {
@@ -208,9 +223,11 @@ class ProgrammeNutriRepository {
         idProgramme: nouveauProg.idProgramme,
       );
       _repasLocaux.add(repasLie);
-      try {
-        await _client.from('repas').insert(repasLie.toMap());
-      } catch (_) {}
+      if (client != null) {
+        try {
+          await client.from('repas').insert(repasLie.toMap());
+        } catch (_) {}
+      }
     }
 
     return nouveauProg;
@@ -223,12 +240,15 @@ class ProgrammeNutriRepository {
       _programmesLocaux[index] = programme;
     }
 
-    try {
-      await _client
-          .from('programme_nutritionnel')
-          .update(programme.toMap())
-          .eq('id', programme.idProgramme);
-    } catch (_) {}
+    final client = _client;
+    if (client != null) {
+      try {
+        await client
+            .from('programme_nutritionnel')
+            .update(programme.toMap())
+            .eq('id', programme.idProgramme);
+      } catch (_) {}
+    }
   }
 
   /// Changer le statut d'un programme (ACTIF, TERMINE, SUSPENDU, ANNULE)
@@ -238,12 +258,15 @@ class ProgrammeNutriRepository {
       _programmesLocaux[index] = _programmesLocaux[index].copyWith(statut: statut);
     }
 
-    try {
-      await _client
-          .from('programme_nutritionnel')
-          .update({'statut': statut.name})
-          .eq('id', idProgramme);
-    } catch (_) {}
+    final client = _client;
+    if (client != null) {
+      try {
+        await client
+            .from('programme_nutritionnel')
+            .update({'statut': statut.name})
+            .eq('id', idProgramme);
+      } catch (_) {}
+    }
   }
 
   /// Ajout d'un repas à un programme
@@ -253,9 +276,12 @@ class ProgrammeNutriRepository {
     );
     _repasLocaux.add(nouveau);
 
-    try {
-      await _client.from('repas').insert(nouveau.toMap());
-    } catch (_) {}
+    final client = _client;
+    if (client != null) {
+      try {
+        await client.from('repas').insert(nouveau.toMap());
+      } catch (_) {}
+    }
 
     return nouveau;
   }
@@ -263,9 +289,12 @@ class ProgrammeNutriRepository {
   /// Suppression d'un repas
   Future<void> supprimerRepas(String idRepas) async {
     _repasLocaux.removeWhere((r) => r.idRepas == idRepas);
-    try {
-      await _client.from('repas').delete().eq('id', idRepas);
-    } catch (_) {}
+    final client = _client;
+    if (client != null) {
+      try {
+        await client.from('repas').delete().eq('id', idRepas);
+      } catch (_) {}
+    }
   }
 
   /// Suppression d'un programme
@@ -273,8 +302,11 @@ class ProgrammeNutriRepository {
     _programmesLocaux.removeWhere((p) => p.idProgramme == idProgramme);
     _repasLocaux.removeWhere((r) => r.idProgramme == idProgramme);
 
-    try {
-      await _client.from('programme_nutritionnel').delete().eq('id', idProgramme);
-    } catch (_) {}
+    final client = _client;
+    if (client != null) {
+      try {
+        await client.from('programme_nutritionnel').delete().eq('id', idProgramme);
+      } catch (_) {}
+    }
   }
 }
