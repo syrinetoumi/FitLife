@@ -97,4 +97,55 @@ class ReservationSeanceRepository {
 
     return lignes.isNotEmpty;
   }
+  // La réservation active de l'athlète connecté pour cette séance.
+  Future<ReservationSeance?> getMaReservation(int idSeance) async {
+    final utilisateur = client.auth.currentUser;
+
+    if (utilisateur == null) {
+      return null;
+    }
+
+    final ligne = await client
+        .from('reservation_seance')
+        .select()
+        .eq('id_seance', idSeance)
+        .eq('id_athlete', utilisateur.id)
+        .eq('statut', 'CONFIRMEE')
+        .maybeSingle();
+
+    if (ligne == null) {
+      return null;
+    }
+
+    return ReservationSeance.fromJson(ligne);
+  }
+
+  // Noms des participants confirmés (pour le coach de la séance).
+  Future<List<String>> getNomsParticipants(int idSeance) async {
+    final lignes = await client
+        .from('reservation_seance')
+        .select('date_reservation, profiles(nom, prenom)')
+        .eq('id_seance', idSeance)
+        .eq('statut', 'CONFIRMEE')
+        .order('date_reservation', ascending: true);
+
+    List<String> noms = [];
+
+    for (var ligne in lignes) {
+      final profil = ligne['profiles'];
+      String nom = '';
+
+      if (profil != null) {
+        nom = '${profil['prenom'] ?? ''} ${profil['nom'] ?? ''}'.trim();
+      }
+
+      if (nom.isEmpty) {
+        nom = 'Athlète';
+      }
+
+      noms.add(nom);
+    }
+
+    return noms;
+  }
 }

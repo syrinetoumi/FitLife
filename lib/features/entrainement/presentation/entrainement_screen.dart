@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-
 import 'package:coach_app/core/utils/outils.dart';
 import 'exploration_musculaire/body_screen.dart';
 import 'programmes/programme_list_screen.dart';
+import 'seances/seance_list_screen.dart';
+import 'suivi/suivi_list_screen.dart';
 
 class EntrainementScreen extends StatefulWidget {
   const EntrainementScreen({super.key});
@@ -17,13 +18,15 @@ class _EntrainementScreenState extends State<EntrainementScreen> {
   final List<String> titres = [
     'Exploration musculaire',
     'Programmes',
-    // à ajouter : 'Séances'
+    'Séances',
+    'Suivi',
   ];
 
   final List<Widget> pages = const [
     BodyScreen(integre: true),
     ProgrammeListScreen(integre: true),
-    // à ajouter : SeanceListScreen(integre: true),
+    SeanceListScreen(integre: true),
+    SuiviListScreen(integre: true),
   ];
 
   @override
@@ -34,6 +37,7 @@ class _EntrainementScreenState extends State<EntrainementScreen> {
       body: pages[indexCourant],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: indexCourant,
+        type: BottomNavigationBarType.fixed,
         onTap: (index) {
           setState(() {
             indexCourant = index;
@@ -48,7 +52,14 @@ class _EntrainementScreenState extends State<EntrainementScreen> {
             icon: Icon(Icons.fitness_center),
             label: 'Programmes',
           ),
-          // à ajouter : BottomNavigationBarItem(icon: Icon(Icons.event_available), label: 'Séances'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event_available),
+            label: 'Séances',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.show_chart),
+            label: 'Suivi',
+          ),
         ],
       ),
     );

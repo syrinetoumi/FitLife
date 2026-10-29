@@ -84,7 +84,7 @@ class _ExercicesListScreenState extends State<ExercicesListScreen> {
                     contentPadding: const EdgeInsets.all(14),
                     leading: CircleAvatar(
                       backgroundColor:
-                      couleurDifficulte(exercice.difficulte).withOpacity(0.15),
+                      couleurDifficulte(exercice.difficulte).withValues(alpha:0.15),
                       child: Icon(
                         Icons.fitness_center,
                         color: couleurDifficulte(exercice.difficulte),

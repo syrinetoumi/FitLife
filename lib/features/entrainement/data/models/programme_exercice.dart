@@ -1,30 +1,37 @@
 class ProgrammeExercice {
   final int idProgramme;
-  final int idExercice;
+  final String externalId; // identifiant de l'exercice dans ExerciseDB
   final int ordre;
   final int? series;
   final int? repetitions;
-  final int? tempsRepos;
-  final double? charge;
+  final int? tempsRepos; // en secondes
+  final double? charge; // en kg
 
   ProgrammeExercice({
-    required this.idProgramme, required this.idExercice, required this.ordre,
-    this.series, this.repetitions, this.tempsRepos, this.charge,
+    required this.idProgramme,
+    required this.externalId,
+    required this.ordre,
+    this.series,
+    this.repetitions,
+    this.tempsRepos,
+    this.charge,
   });
 
-  factory ProgrammeExercice.fromJson(Map<String, dynamic> j) => ProgrammeExercice(
-    idProgramme: j['id_programme'],
-    idExercice: j['id_exercice'],
-    ordre: j['ordre'],
-    series: j['series'],
-    repetitions: j['repetitions'],
-    tempsRepos: j['temps_repos'],
-    charge: (j['charge'] as num?)?.toDouble(),
-  );
+  factory ProgrammeExercice.fromJson(Map<String, dynamic> json) {
+    return ProgrammeExercice(
+      idProgramme: json['id_programme'] as int,
+      externalId: json['external_id'] as String,
+      ordre: json['ordre'] as int,
+      series: json['series'] as int?,
+      repetitions: json['repetitions'] as int?,
+      tempsRepos: json['temps_repos'] as int?,
+      charge: (json['charge'] as num?)?.toDouble(),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id_programme': idProgramme,
-    'id_exercice': idExercice,
+    'external_id': externalId,
     'ordre': ordre,
     'series': series,
     'repetitions': repetitions,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:coach_app/core/utils/alertes.dart';
 import 'package:coach_app/core/utils/outils.dart';
 import 'package:coach_app/features/entrainement/data/models/enums.dart';
 import 'package:coach_app/features/entrainement/data/models/programme.dart';
@@ -103,9 +104,10 @@ class _ProgrammeFormScreenState extends State<ProgrammeFormScreen> {
     DateTime? dateFin = lireDate(dateFinTexte);
 
     if (dateDebut != null && dateFin != null && dateFin.isBefore(dateDebut)) {
-      afficherMessage(
+      afficherAlerteErreur(
         context,
-        'La date de fin doit être après la date de début',
+        titre: 'Dates incorrectes',
+        message: 'La date de fin doit être après la date de début.',
       );
       return;
     }
@@ -134,14 +136,18 @@ class _ProgrammeFormScreenState extends State<ProgrammeFormScreen> {
       }
     } catch (erreur) {
       if (mounted) {
-        afficherMessage(context, 'Enregistrement impossible : $erreur');
+        afficherAlerteErreur(
+          context,
+          titre: 'Enregistrement impossible',
+          message: '$erreur',
+        );
       }
     }
   }
 
   Widget titreSection(String texte) {
     return Container(
-      margin: const EdgeInsets.only(top: 20, bottom: 8),
+      margin: const EdgeInsets.only(top: 12),
       child: Text(
         texte,
         style: const TextStyle(fontSize: 18),
@@ -217,69 +223,75 @@ class _ProgrammeFormScreenState extends State<ProgrammeFormScreen> {
         child: Form(
           key: formKey,
           child: ListView(
-            // Garde tous les champs construits (voir evenement_form_screen).
-            cacheExtent: 3000,
             padding: const EdgeInsets.only(bottom: 40),
             children: [
-              TextFormField(
-                initialValue: nom,
-                decoration: const InputDecoration(labelText: 'Nom'),
-                onChanged: (value) {
-                  nom = value;
-                },
-                validator: validerNom,
-              ),
-              TextFormField(
-                initialValue: description,
-                decoration: const InputDecoration(labelText: 'Description'),
-                onChanged: (value) {
-                  description = value;
-                },
-              ),
-              TextFormField(
-                initialValue: dureeTexte,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Durée (semaines)',
-                ),
-                onChanged: (value) {
-                  dureeTexte = value;
-                },
-                validator: validerDuree,
-              ),
-              titreSection('Objectif'),
-              choixObjectif(),
-              titreSection('Niveau'),
-              choixNiveau(),
-              titreSection('Dates (facultatif)'),
-              TextFormField(
-                initialValue: dateDebutTexte,
-                keyboardType: TextInputType.datetime,
-                decoration: const InputDecoration(
-                  labelText: 'Date de début (jj/mm/aaaa)',
-                ),
-                onChanged: (value) {
-                  dateDebutTexte = value;
-                },
-                validator: validerDateFacultative,
-              ),
-              TextFormField(
-                initialValue: dateFinTexte,
-                keyboardType: TextInputType.datetime,
-                decoration: const InputDecoration(
-                  labelText: 'Date de fin (jj/mm/aaaa)',
-                ),
-                onChanged: (value) {
-                  dateFinTexte = value;
-                },
-                validator: validerDateFacultative,
-              ),
-              Container(
-                margin: const EdgeInsets.only(top: 35, bottom: 20),
-                child: ElevatedButton(
-                  onPressed: enregistrer,
-                  child: const Text('Enregistrer'),
-                ),
+              // Un seul Column : espacement régulier entre tous les champs.
+              Column(
+                spacing: 16,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    initialValue: nom,
+                    decoration: const InputDecoration(labelText: 'Nom'),
+                    onChanged: (value) {
+                      nom = value;
+                    },
+                    validator: validerNom,
+                  ),
+                  TextFormField(
+                    initialValue: description,
+                    decoration:
+                    const InputDecoration(labelText: 'Description'),
+                    onChanged: (value) {
+                      description = value;
+                    },
+                  ),
+                  TextFormField(
+                    initialValue: dureeTexte,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Durée (semaines)',
+                    ),
+                    onChanged: (value) {
+                      dureeTexte = value;
+                    },
+                    validator: validerDuree,
+                  ),
+                  titreSection('Objectif'),
+                  choixObjectif(),
+                  titreSection('Niveau'),
+                  choixNiveau(),
+                  titreSection('Dates (facultatif)'),
+                  TextFormField(
+                    initialValue: dateDebutTexte,
+                    keyboardType: TextInputType.datetime,
+                    decoration: const InputDecoration(
+                      labelText: 'Date de début (jj/mm/aaaa)',
+                    ),
+                    onChanged: (value) {
+                      dateDebutTexte = value;
+                    },
+                    validator: validerDateFacultative,
+                  ),
+                  TextFormField(
+                    initialValue: dateFinTexte,
+                    keyboardType: TextInputType.datetime,
+                    decoration: const InputDecoration(
+                      labelText: 'Date de fin (jj/mm/aaaa)',
+                    ),
+                    onChanged: (value) {
+                      dateFinTexte = value;
+                    },
+                    validator: validerDateFacultative,
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 20),
+                    child: ElevatedButton(
+                      onPressed: enregistrer,
+                      child: const Text('Enregistrer'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
