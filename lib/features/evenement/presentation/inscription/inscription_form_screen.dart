@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Votre fichier est dans features/evenement/presentation/inscription/
 // ../../          = remonte jusqu'à evenement/
@@ -16,10 +17,12 @@ import '../paiements/paiement_form_screen.dart';
 
 class InscriptionFormScreen extends StatefulWidget {
   final Inscription? inscription;
+  final Evenement? evenementInitial;
 
   const InscriptionFormScreen({
     super.key,
     this.inscription,
+    this.evenementInitial,
   });
 
   @override
@@ -65,6 +68,9 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
       ageTexte = inscription.ageAthlete.toString();
       niveauAthlete = inscription.niveauAthlete;
       statut = inscription.statut;
+    } else if (widget.evenementInitial != null) {
+      idEvenement = widget.evenementInitial!.idEvenement;
+      idCategorie = widget.evenementInitial!.idCategorie;
     }
 
     chargerEvenements();
@@ -82,11 +88,12 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
         evenements = resultat;
       });
 
-      // En modification : charger la catégorie de l'événement choisi.
+      // En modification ou pré-sélection : charger la catégorie et compter les places.
       if (idEvenement.isNotEmpty) {
         for (Evenement e in evenements) {
           if (e.idEvenement == idEvenement) {
             chargerCategorieEvenement(e);
+            compterPlaces(e);
           }
         }
       }
@@ -338,20 +345,29 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
         }
 
         // --------------------------------------------------------
-        // MÉTIER 3 : le parcours continue automatiquement
-        // vers le PAIEMENT (étape suivante du sujet).
+        // MÉTIER 3 : si l'athlète choisit "CONFIRMEE", redirection directe vers le PAIEMENT.
+        // Si "EN_ATTENTE", l'inscription est au panier sans paiement immédiat.
         // --------------------------------------------------------
-        Inscription? creee = retrouverInscriptionCreee(liste, inscription);
+        if (statut == StatutInscription.confirmee) {
+          Inscription? creee = retrouverInscriptionCreee(liste, inscription);
 
-        if (creee != null && mounted) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PaiementFormScreen(
-                inscriptionChoisie: creee,
+          if (creee != null && mounted) {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PaiementFormScreen(
+                  inscriptionChoisie: creee,
+                ),
               ),
-            ),
-          );
+            );
+          }
+        } else {
+          if (mounted) {
+            afficherMessage(
+              context,
+              'Inscription enregistrée EN ATTENTE. Retrouvez-la dans votre Panier !',
+            );
+          }
         }
       } else {
         await inscriptionRepository.modifier(inscription);
@@ -377,48 +393,67 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     );
   }
 
-  Widget choixEvenement() {
-    if (evenements.isEmpty) {
-      return const Text('Aucun événement : créez-en un d’abord.');
+  // Affiche l'événement déjà sélectionné (l'athlète ne le change pas en cours de route).
+  Widget evenementSelectionne() {
+    Evenement? evt;
+    for (Evenement e in evenements) {
+      if (e.idEvenement == idEvenement) {
+        evt = e;
+        break;
+      }
     }
+    evt ??= widget.evenementInitial;
 
-    return Container(
-      height: 200,
-      child: ListView.builder(
-        itemCount: evenements.length,
-        itemBuilder: (context, index) {
-          Evenement evenement = evenements[index];
-          bool choisi = idEvenement == evenement.idEvenement;
+    String nom = evt?.nom ?? 'Événement sélectionné';
+    String statut = evt != null ? evt.statut.name.toUpperCase() : 'OUVERT';
+    int capacite = evt?.capacite ?? 0;
 
-          return Card(
-            color: choisi ? Colors.blue.shade50 : null,
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  idEvenement = evenement.idEvenement;
-                  idCategorie = '';
-                  categories = [];
-                  placesRestantes = -1;
-                });
-
-                chargerCategorieEvenement(evenement);
-                compterPlaces(evenement);
-              },
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    Text(choisi ? '✓ ${evenement.nom}' : evenement.nom),
-                    Text(
-                      'Statut : ${evenement.statut.name.toUpperCase()} — '
-                          'Capacité : ${evenement.capacite}',
-                    ),
-                  ],
+    return Card(
+      color: Colors.blue.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: Colors.blue.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nom.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.indigo,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Capacité : $capacite places',
+                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+                ),
+              ],
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                statut,
+                style: TextStyle(
+                  color: Colors.green.shade800,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
                 ),
               ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
@@ -547,8 +582,14 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     );
   }
 
-  // Choix du statut : GridView.builder (Chapitre 4).
+  // Choix du statut : uniquement EN_ATTENTE et CONFIRMEE.
+  // ANNULEE est déplacée dans le panier, et REFUSEE est retirée.
   Widget choixStatut() {
+    final List<StatutInscription> statutsDisponibles = [
+      StatutInscription.confirmee,
+      StatutInscription.enAttente,
+    ];
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -558,9 +599,9 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
-      itemCount: StatutInscription.values.length,
+      itemCount: statutsDisponibles.length,
       itemBuilder: (context, index) {
-        StatutInscription valeur = StatutInscription.values[index];
+        StatutInscription valeur = statutsDisponibles[index];
         String libelle = statutInscriptionEnTexte(valeur);
 
         return ElevatedButton(
@@ -594,8 +635,8 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
             cacheExtent: 3000,
             padding: const EdgeInsets.only(bottom: 40),
             children: [
-              titreSection('Choisir un événement'),
-              choixEvenement(),
+              titreSection('Événement sélectionné'),
+              evenementSelectionne(),
               cartePlaces(),
               titreSection('Catégorie de l’événement'),
               choixCategorie(),

@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
 
-// Alerte d'erreur rouge, plus claire qu'un SnackBar.
-Future<void> afficherAlerteErreur(
+// Boîte de dialogue pour afficher une erreur bloquante.
+void afficherAlerteErreur(
     BuildContext context, {
       required String titre,
       required String message,
     }) {
-  return showDialog<void>(
+  showDialog(
     context: context,
     builder: (context) {
-      return Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
+      return AlertDialog(
+        contentPadding: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(

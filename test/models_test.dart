@@ -47,10 +47,8 @@ void main() {
       'prix': 15, 'statut': 'PLANIFIEE', 'id_coach': 'abc',
       'id_programme': null, 'id_espace_sportif': null,
     });
-    expect(s.type, TypeSeance.COLL
-        ECTIVE);
-    expect(s.statut, Statu
-        tSeance.PLANIFIEE);
+    expect(s.type, TypeSeance.COLLECTIVE);
+    expect(s.statut, StatutSeance.PLANIFIEE);
     expect(s.prix, 15.0);
     expect(s.toJson()['date'], '2026-10-20');
     expect(s.toJson()['type'], 'COLLECTIVE');
