@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:coach_app/core/utils/alertes.dart';
 import '../../data/models/categorie.dart';
 import '../../data/repositories/categorie_repository.dart';
-import '../../../../core/utils/outils.dart';
 
 // Formulaire catégorie : gestion du CATALOGUE
 // (nom, âges, niveau). Une catégorie n'est plus liée
@@ -71,7 +71,11 @@ class _CategorieFormScreenState extends State<CategorieFormScreen> {
     int ageMax = int.parse(ageMaxTexte);
 
     if (ageMin > ageMax) {
-      afficherMessage(context, 'L’âge minimum dépasse l’âge maximum');
+      afficherAlerteErreur(
+        context,
+        titre: 'Âges incorrects',
+        message: 'L’âge minimum dépasse l’âge maximum.',
+      );
       return;
     }
 
@@ -95,14 +99,18 @@ class _CategorieFormScreenState extends State<CategorieFormScreen> {
       }
     } catch (erreur) {
       if (mounted) {
-        afficherMessage(context, 'Enregistrement impossible : $erreur');
+        afficherAlerteErreur(
+          context,
+          titre: 'Enregistrement impossible',
+          message: '$erreur',
+        );
       }
     }
   }
 
   Widget titreSection(String texte) {
     return Container(
-      margin: const EdgeInsets.only(top: 20, bottom: 8),
+      margin: const EdgeInsets.only(top: 12),
       child: Text(
         texte,
         style: const TextStyle(fontSize: 18),
@@ -153,42 +161,53 @@ class _CategorieFormScreenState extends State<CategorieFormScreen> {
           child: ListView(
             padding: const EdgeInsets.only(bottom: 40),
             children: [
-              TextFormField(
-                initialValue: nom,
-                decoration: const InputDecoration(
-                  labelText: 'Nom de la catégorie',
-                ),
-                onChanged: (value) {
-                  nom = value;
-                },
-                validator: validerNom,
-              ),
-              TextFormField(
-                initialValue: ageMinTexte,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Âge minimum'),
-                onChanged: (value) {
-                  ageMinTexte = value;
-                },
-                validator: validerAge,
-              ),
-              TextFormField(
-                initialValue: ageMaxTexte,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Âge maximum'),
-                onChanged: (value) {
-                  ageMaxTexte = value;
-                },
-                validator: validerAge,
-              ),
-              titreSection('Niveau'),
-              choixNiveau(),
-              Container(
-                margin: const EdgeInsets.only(top: 35, bottom: 20),
-                child: ElevatedButton(
-                  onPressed: enregistrer,
-                  child: const Text('Enregistrer'),
-                ),
+              // Un seul Column : espacement régulier entre tous les champs.
+              Column(
+                spacing: 16,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    initialValue: nom,
+                    decoration: const InputDecoration(
+                      labelText: 'Nom de la catégorie',
+                    ),
+                    onChanged: (value) {
+                      nom = value;
+                    },
+                    validator: validerNom,
+                  ),
+                  TextFormField(
+                    initialValue: ageMinTexte,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Âge minimum',
+                    ),
+                    onChanged: (value) {
+                      ageMinTexte = value;
+                    },
+                    validator: validerAge,
+                  ),
+                  TextFormField(
+                    initialValue: ageMaxTexte,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Âge maximum',
+                    ),
+                    onChanged: (value) {
+                      ageMaxTexte = value;
+                    },
+                    validator: validerAge,
+                  ),
+                  titreSection('Niveau'),
+                  choixNiveau(),
+                  Container(
+                    margin: const EdgeInsets.only(top: 20),
+                    child: ElevatedButton(
+                      onPressed: enregistrer,
+                      child: const Text('Enregistrer'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:coach_app/features/auth/presentation/utilisateur_list_screen.dart';
+
 // Afficher un message en bas de l'écran.
 void afficherMessage(BuildContext context, String texte) {
   ScaffoldMessenger.of(context).showSnackBar(
@@ -32,9 +34,7 @@ DateTime? lireDate(String texte) {
 
   DateTime date = DateTime(annee, mois, jour);
 
-  if (date.day != jour ||
-      date.month != mois ||
-      date.year != annee) {
+  if (date.day != jour || date.month != mois || date.year != annee) {
     return null;
   }
 
@@ -64,10 +64,7 @@ String? lireHeure(String texte) {
     return null;
   }
 
-  if (heure < 0 ||
-      heure > 23 ||
-      minute < 0 ||
-      minute > 59) {
+  if (heure < 0 || heure > 23 || minute < 0 || minute > 59) {
     return null;
   }
 
@@ -75,8 +72,48 @@ String? lireHeure(String texte) {
       '${minute.toString().padLeft(2, '0')}';
 }
 
+// ================================================================
+// DÉTECTION DU RÔLE (ADMIN vs ATHLÈTE)
+// ================================================================
+// Variable globale permettant de basculer en mode Admin en 1 clic pour vos tests
+bool modeAdminForce = false;
+
+void basculerModeAdmin() {
+  modeAdminForce = !modeAdminForce;
+}
+
+// Détecte si l'utilisateur est Admin (via le switch de test OU Supabase)
+bool estUtilisateurAdmin() {
+  // 1. Priorité au switch de test (pour tester sans compte admin)
+  if (modeAdminForce) {
+    return true;
+  }
+
+  try {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+
+    // 2. Métadonnées Supabase (ex: {"role": "admin"})
+    final dynamic role = user.userMetadata?['role'];
+    if (role != null && role.toString().toLowerCase() == 'admin') {
+      return true;
+    }
+
+    // 3. Fallback pratique par e-mail
+    final email = user.email?.toLowerCase() ?? '';
+    if (email.contains('admin')) {
+      return true;
+    }
+
+    return false;
+  } catch (_) {
+    return false;
+  }
+}
+
 // Élément cliquable du Drawer.
-// Chapitre 5 : InkWell + Navigator.pushReplacementNamed.
 Widget elementMenu(
     BuildContext context,
     String titre,
@@ -87,32 +124,36 @@ Widget elementMenu(
     onTap: () {
       Navigator.pop(context);
 
+      // Si l'admin clique sur Utilisateurs, navigation directe sécurisée
+      if (route == '/utilisateurs') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const UtilisateurListScreen(),
+          ),
+        );
+        return;
+      }
+
       Navigator.pushReplacementNamed(
         context,
         route,
       );
     },
-
     child: Container(
       padding: const EdgeInsets.all(14),
-
       child: Row(
         children: [
           Icon(
             icone,
             color: Colors.deepPurple,
           ),
-
-          // Expanded : le texte passe à la ligne au lieu de déborder.
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.only(left: 14),
-
-              child: Text(
-                titre,
-                style: const TextStyle(
-                  fontSize: 15,
-                ),
+          Container(
+            margin: const EdgeInsets.only(left: 14),
+            child: Text(
+              titre,
+              style: const TextStyle(
+                fontSize: 15,
               ),
             ),
           ),
@@ -123,18 +164,15 @@ Widget elementMenu(
 }
 
 // Drawer commun à tous les écrans.
-// Chapitre 5 : Drawer.
 Widget construireDrawer(BuildContext context) {
   return Drawer(
     child: ListView(
       padding: const EdgeInsets.all(12),
-
       children: [
         // HEADER
         Container(
           padding: const EdgeInsets.all(20),
           color: Colors.deepPurple,
-
           child: const Column(
             children: [
               Icon(
@@ -142,20 +180,19 @@ Widget construireDrawer(BuildContext context) {
                 size: 48,
                 color: Colors.white,
               ),
-
               Text(
                 'FITLIFE',
                 style: TextStyle(
                   fontSize: 22,
                   color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-
               Text(
                 'Coaching sportif',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.white,
+                  color: Colors.white70,
                 ),
               ),
             ],
@@ -165,7 +202,6 @@ Widget construireDrawer(BuildContext context) {
         // ACCUEIL EN PREMIER
         Container(
           margin: const EdgeInsets.only(top: 15),
-
           child: Card(
             child: elementMenu(
               context,
@@ -182,12 +218,12 @@ Widget construireDrawer(BuildContext context) {
             top: 20,
             bottom: 8,
           ),
-
           child: const Text(
             'GESTION',
             style: TextStyle(
               fontSize: 14,
               color: Colors.deepPurple,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
@@ -199,46 +235,32 @@ Widget construireDrawer(BuildContext context) {
                 context,
                 'Événements',
                 Icons.event,
-                '/evenements',
+                '/bas',
               ),
-
-              elementMenu(
-                context,
-                'Catégories',
-                Icons.category,
-                '/categories',
-              ),
-
-              elementMenu(
-                context,
-                'Inscriptions',
-                Icons.how_to_reg,
-                '/inscriptions',
-              ),
-
-              elementMenu(
-                context,
-                'Paiements',
-                Icons.payment,
-                '/paiements',
-              ),
+              // Gestion des comptes : visible UNIQUEMENT pour l'Admin
+              if (estUtilisateurAdmin())
+                elementMenu(
+                  context,
+                  'Utilisateurs',
+                  Icons.people,
+                  '/utilisateurs',
+                ),
             ],
           ),
         ),
 
-        // BLOC ENTRAÎNEMENT : une seule entrée,
-        // la barre du bas gère Corps / Programmes.
+        // BLOC ENTRAÎNEMENT
         Container(
           margin: const EdgeInsets.only(
             top: 20,
             bottom: 8,
           ),
-
           child: const Text(
             'ENTRAÎNEMENT',
             style: TextStyle(
               fontSize: 14,
               color: Colors.deepPurple,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
@@ -262,12 +284,12 @@ Widget construireDrawer(BuildContext context) {
             top: 20,
             bottom: 8,
           ),
-
           child: const Text(
             'NAVIGATION',
             style: TextStyle(
               fontSize: 14,
               color: Colors.deepPurple,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
@@ -281,7 +303,6 @@ Widget construireDrawer(BuildContext context) {
                 Icons.tab,
                 '/onglets',
               ),
-
               elementMenu(
                 context,
                 'Navigation en bas',
@@ -292,36 +313,28 @@ Widget construireDrawer(BuildContext context) {
           ),
         ),
 
-        // SE DÉCONNECTER (carte séparée)
+        // DÉCONNEXION
         Container(
-          margin: const EdgeInsets.only(top: 20),
-
+          margin: const EdgeInsets.only(top: 15),
           child: Card(
             child: InkWell(
               onTap: () async {
-                await Supabase.instance.client.auth.signOut();
-
+                try {
+                  await Supabase.instance.client.auth.signOut();
+                } catch (_) {}
                 if (context.mounted) {
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/connexion',
-                        (route) => false,
-                  );
+                  Navigator.pushReplacementNamed(context, '/connexion');
                 }
               },
-
               child: Container(
                 padding: const EdgeInsets.all(14),
-
                 child: const Row(
                   children: [
-                    Icon(Icons.logout),
-
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(left: 14),
-                        child: Text('Se déconnecter'),
-                      ),
+                    Icon(Icons.logout, color: Colors.red),
+                    SizedBox(width: 14),
+                    Text(
+                      'Se déconnecter',
+                      style: TextStyle(fontSize: 15, color: Colors.red),
                     ),
                   ],
                 ),
