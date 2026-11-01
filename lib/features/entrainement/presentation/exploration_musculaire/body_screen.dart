@@ -78,6 +78,7 @@ class _BodyScreenState extends State<BodyScreen> {
               ),
             ],
           ),
+          //Ce Container sert à laisser un espace de 8 pixels au-dessus de son contenu
           Container(
             margin: const EdgeInsets.only(top: 8),
             child: Row(
