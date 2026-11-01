@@ -13,7 +13,7 @@ import 'package:coach_app/features/entrainement/presentation/widgets/carte_image
 import 'package:coach_app/features/entrainement/presentation/widgets/ligne_info.dart';
 import 'libelles_seance.dart';
 import 'seance_form_screen.dart';
-
+import 'carte_meteo.dart';
 class SeanceDetailScreen extends StatefulWidget {
   final Seance seance;
 
@@ -415,7 +415,7 @@ class _SeanceDetailScreenState extends State<SeanceDetailScreen> {
               ),
             ),
           ),
-        // À venir : météo (Open-Meteo).
+        CarteMeteo(seance: seance),
         Container(
           margin: const EdgeInsets.only(top: 12),
           child: proprietaire ? blocCoach() : blocAthlete(),
