@@ -1,6 +1,6 @@
 import '../models/suivi_objectif.dart';
 import 'calcul_progression.dart';
-
+import 'calcul_assiduite.dart';
 enum TypeProposition { prolongerDate, ajusterCible, conseil }
 
 class Proposition {
@@ -50,8 +50,9 @@ class AdaptationProgramme {
 
   static List<Proposition> proposer(
       SuiviObjectif suivi,
-      ResultatProgression r,
-      ) {
+      ResultatProgression r, {
+        ResultatAssiduite? assiduite,
+      }) {
     final liste = <Proposition>[];
     final projetee = _valeurProjetee(suivi, r);
 
@@ -100,14 +101,33 @@ class AdaptationProgramme {
         }
 
         // 3. Conseil sur le programme.
-        liste.add(Proposition(
-          type: TypeProposition.conseil,
-          titre: 'Renforcer le programme',
-          explication: 'Ajoute une séance par semaine ou revois l\'intensité. '
-              'Vérifie aussi l\'assiduité de l\'athlète.',
-        ));
+        // 3. Conseil : il dépend de l'assiduité.
+        if (assiduite != null && assiduite.niveau == NiveauAssiduite.faible) {
+          liste.add(Proposition(
+            type: TypeProposition.conseil,
+            titre: 'Améliorer l\'assiduité',
+            explication: 'Le retard s\'explique surtout par l\'assiduité '
+                '(${assiduite.taux!.toStringAsFixed(0)} %). Relance l\'athlète '
+                'avant de modifier le programme.',
+          ));
+        } else if (assiduite != null &&
+            assiduite.niveau == NiveauAssiduite.tresAssidu) {
+          liste.add(Proposition(
+            type: TypeProposition.conseil,
+            titre: 'Revoir l\'intensité',
+            explication: 'L\'athlète est assidu '
+                '(${assiduite.taux!.toStringAsFixed(0)} %) mais progresse '
+                'lentement : augmente l\'intensité du programme.',
+          ));
+        } else {
+          liste.add(Proposition(
+            type: TypeProposition.conseil,
+            titre: 'Renforcer le programme',
+            explication: 'Ajoute une séance par semaine ou revois l\'intensité. '
+                'Vérifie aussi l\'assiduité de l\'athlète.',
+          ));
+        }
         break;
-
       case StatutProgression.enAvance:
         if (projetee != null && projetee > 0) {
           final cible = _arrondi(projetee);
@@ -137,7 +157,6 @@ class AdaptationProgramme {
               'les charges ou le volume.',
         ));
         break;
-
       case StatutProgression.atteint:
         liste.add(Proposition(
           type: TypeProposition.conseil,
