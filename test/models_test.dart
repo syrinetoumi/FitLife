@@ -31,12 +31,26 @@ void main() {
   });*/
 
   test('ProgrammeExercice fromJson / toJson', () {
-    final pe = ProgrammeExercice.fromJson({
-      'id_programme': 1, 'id_exercice': 5, 'ordre': 1,
-      'series': 4, 'repetitions': 10, 'temps_repos': 60, 'charge': 20,
-    });
-    expect(pe.charge, 20.0);
-    expect(pe.toJson()['temps_repos'], 60);
+    final json = {
+      'id_programme': 1,
+      'external_id': '0001',
+      'ordre': 1,
+      'series': 3,
+      'repetitions': 12,
+      'temps_repos': 60,
+      'charge': 20.5,
+    };
+
+    final exercice = ProgrammeExercice.fromJson(json);
+
+    expect(exercice.idProgramme, 1);
+    expect(exercice.externalId, '0001');
+    expect(exercice.ordre, 1);
+    expect(exercice.series, 3);
+    expect(exercice.repetitions, 12);
+    expect(exercice.tempsRepos, 60);
+    expect(exercice.charge, 20.5);
+    expect(exercice.toJson(), json);
   });
 
   test('Seance fromJson / toJson', () {

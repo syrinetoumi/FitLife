@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'package:coach_app/core/utils/alertes.dart';
+import 'package:coach_app/core/utils/outils.dart';
 import '../../data/models/categorie.dart';
 import '../../data/models/evenement.dart';
 import '../../data/repositories/categorie_repository.dart';
 import '../../data/repositories/evenement_repository.dart';
-import '../../../../core/utils/outils.dart';
 import '../categories/categorie_form_screen.dart';
 
 class EvenementFormScreen extends StatefulWidget {
@@ -82,7 +83,11 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
       });
     } catch (erreur) {
       if (mounted) {
-        afficherMessage(context, 'Erreur de chargement : $erreur');
+        afficherAlerteErreur(
+          context,
+          titre: 'Chargement impossible',
+          message: '$erreur',
+        );
       }
     }
   }
@@ -138,7 +143,11 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
 
     // La catégorie est obligatoire (création ET modification).
     if (idCategorie.isEmpty) {
-      afficherMessage(context, 'Choisissez une catégorie');
+      afficherAlerteErreur(
+        context,
+        titre: 'Catégorie manquante',
+        message: 'Choisissez une catégorie pour l’événement.',
+      );
       return;
     }
 
@@ -147,14 +156,19 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
     String? heure = lireHeure(heureTexte);
 
     if (dateDebut == null || dateFin == null || heure == null) {
-      afficherMessage(context, 'Dates ou heure invalides');
+      afficherAlerteErreur(
+        context,
+        titre: 'Dates incorrectes',
+        message: 'Dates ou heure invalides.',
+      );
       return;
     }
 
     if (dateFin.isBefore(dateDebut)) {
-      afficherMessage(
+      afficherAlerteErreur(
         context,
-        'La date de fin doit être après la date de début',
+        titre: 'Dates incorrectes',
+        message: 'La date de fin doit être après la date de début.',
       );
       return;
     }
@@ -186,7 +200,11 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
       }
     } catch (erreur) {
       if (mounted) {
-        afficherMessage(context, 'Enregistrement impossible : $erreur');
+        afficherAlerteErreur(
+          context,
+          titre: 'Enregistrement impossible',
+          message: '$erreur',
+        );
       }
     }
   }
@@ -225,7 +243,7 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
 
   Widget titreSection(String texte) {
     return Container(
-      margin: const EdgeInsets.only(top: 20, bottom: 8),
+      margin: const EdgeInsets.only(top: 12),
       child: Text(
         texte,
         style: const TextStyle(fontSize: 18),
@@ -233,9 +251,9 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
     );
   }
 
-  // Champ scrollable des catégories + icône "+" à côté du titre.
-  // ListView.builder (Chapitre 3) dans une zone de hauteur fixe,
-  // chaque ligne est cliquable (InkWell, Chapitre 5).
+  // Champ scrollable des catégories : ListView.builder (Chapitre 3)
+  // dans une zone de hauteur fixe, chaque ligne est cliquable
+  // (InkWell, Chapitre 5).
   Widget zoneCategorie() {
     if (categories.isEmpty) {
       return const Text(
@@ -252,7 +270,7 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
           bool choisie = idCategorie == categorie.idCategorie;
 
           return Card(
-            color: choisie ? Colors.blue.shade50 : null,
+            color: choisie ? Colors.deepPurple.shade50 : null,
             child: InkWell(
               onTap: () {
                 setState(() {
@@ -349,118 +367,123 @@ class _EvenementFormScreenState extends State<EvenementFormScreen> {
         child: Form(
           key: formKey,
           child: ListView(
-            // Garde tous les champs construits : sans cela, un TextFormField
-            // sorti de l'écran serait détruit et ne serait plus validé.
-            cacheExtent: 3000,
             padding: const EdgeInsets.only(bottom: 40),
             children: [
-              TextFormField(
-                initialValue: nom,
-                decoration: const InputDecoration(labelText: 'Nom'),
-                onChanged: (value) {
-                  nom = value;
-                },
-                validator: validerObligatoire,
-              ),
-              TextFormField(
-                initialValue: description,
-                decoration: const InputDecoration(labelText: 'Description'),
-                onChanged: (value) {
-                  description = value;
-                },
-              ),
-              TextFormField(
-                initialValue: lieu,
-                decoration: const InputDecoration(labelText: 'Lieu'),
-                onChanged: (value) {
-                  lieu = value;
-                },
-                validator: validerObligatoire,
-              ),
-              TextFormField(
-                initialValue: capaciteTexte,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Capacité'),
-                onChanged: (value) {
-                  capaciteTexte = value;
-                },
-                validator: validerCapacite,
-              ),
-              TextFormField(
-                initialValue: prixTexte,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(labelText: 'Prix (DT)'),
-                onChanged: (value) {
-                  prixTexte = value;
-                },
-                validator: validerPrix,
-              ),
-              titreSection('Type de l’événement'),
-              choixType(),
+              // Un seul Column : espacement régulier entre tous les champs
+              // (et tous les champs restent construits, donc validés).
+              Column(
+                spacing: 16,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    initialValue: nom,
+                    decoration: const InputDecoration(labelText: 'Nom'),
+                    onChanged: (value) {
+                      nom = value;
+                    },
+                    validator: validerObligatoire,
+                  ),
+                  TextFormField(
+                    initialValue: description,
+                    decoration:
+                    const InputDecoration(labelText: 'Description'),
+                    onChanged: (value) {
+                      description = value;
+                    },
+                  ),
+                  TextFormField(
+                    initialValue: lieu,
+                    decoration: const InputDecoration(labelText: 'Lieu'),
+                    onChanged: (value) {
+                      lieu = value;
+                    },
+                    validator: validerObligatoire,
+                  ),
+                  TextFormField(
+                    initialValue: capaciteTexte,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Capacité'),
+                    onChanged: (value) {
+                      capaciteTexte = value;
+                    },
+                    validator: validerCapacite,
+                  ),
+                  TextFormField(
+                    initialValue: prixTexte,
+                    keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Prix (DT)'),
+                    onChanged: (value) {
+                      prixTexte = value;
+                    },
+                    validator: validerPrix,
+                  ),
+                  titreSection('Type de l’événement'),
+                  choixType(),
 
-              // CATÉGORIE : titre + icône "+", puis champ scrollable.
-              Container(
-                margin: const EdgeInsets.only(top: 20, bottom: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Catégorie de l’événement',
-                      style: TextStyle(fontSize: 18),
+                  // CATÉGORIE : titre + icône "+", puis champ scrollable.
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Catégorie de l’événement',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add),
+                          onPressed: ouvrirFormulaireCategorie,
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.add),
-                      onPressed: ouvrirFormulaireCategorie,
-                    ),
-                  ],
-                ),
-              ),
-              zoneCategorie(),
+                  ),
+                  zoneCategorie(),
 
-              titreSection('Date et heure'),
-              TextFormField(
-                initialValue: dateDebutTexte,
-                keyboardType: TextInputType.datetime,
-                decoration: const InputDecoration(
-                  labelText: 'Date de début (jj/mm/aaaa)',
-                ),
-                onChanged: (value) {
-                  dateDebutTexte = value;
-                },
-                validator: validerDate,
-              ),
-              TextFormField(
-                initialValue: dateFinTexte,
-                keyboardType: TextInputType.datetime,
-                decoration: const InputDecoration(
-                  labelText: 'Date de fin (jj/mm/aaaa)',
-                ),
-                onChanged: (value) {
-                  dateFinTexte = value;
-                },
-                validator: validerDate,
-              ),
-              TextFormField(
-                initialValue: heureTexte,
-                keyboardType: TextInputType.datetime,
-                decoration: const InputDecoration(
-                  labelText: 'Heure de début (hh:mm)',
-                ),
-                onChanged: (value) {
-                  heureTexte = value;
-                },
-                validator: validerHeure,
-              ),
-              titreSection('Statut'),
-              choixStatut(),
-              Container(
-                margin: const EdgeInsets.only(top: 35, bottom: 20),
-                child: ElevatedButton(
-                  onPressed: enregistrer,
-                  child: const Text('Enregistrer'),
-                ),
+                  titreSection('Date et heure'),
+                  TextFormField(
+                    initialValue: dateDebutTexte,
+                    keyboardType: TextInputType.datetime,
+                    decoration: const InputDecoration(
+                      labelText: 'Date de début (jj/mm/aaaa)',
+                    ),
+                    onChanged: (value) {
+                      dateDebutTexte = value;
+                    },
+                    validator: validerDate,
+                  ),
+                  TextFormField(
+                    initialValue: dateFinTexte,
+                    keyboardType: TextInputType.datetime,
+                    decoration: const InputDecoration(
+                      labelText: 'Date de fin (jj/mm/aaaa)',
+                    ),
+                    onChanged: (value) {
+                      dateFinTexte = value;
+                    },
+                    validator: validerDate,
+                  ),
+                  TextFormField(
+                    initialValue: heureTexte,
+                    keyboardType: TextInputType.datetime,
+                    decoration: const InputDecoration(
+                      labelText: 'Heure de début (hh:mm)',
+                    ),
+                    onChanged: (value) {
+                      heureTexte = value;
+                    },
+                    validator: validerHeure,
+                  ),
+                  titreSection('Statut'),
+                  choixStatut(),
+                  Container(
+                    margin: const EdgeInsets.only(top: 20),
+                    child: ElevatedButton(
+                      onPressed: enregistrer,
+                      child: const Text('Enregistrer'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

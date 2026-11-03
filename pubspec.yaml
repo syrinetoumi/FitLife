@@ -70,6 +70,8 @@ flutter:
     - assets/anatomy/minimal/
     - assets/images/
     - assets/images/seances/
+    - assets/images/evenement/
+    - assets/images/Home/
 
     #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg

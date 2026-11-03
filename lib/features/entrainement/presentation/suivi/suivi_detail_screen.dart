@@ -11,7 +11,8 @@ import 'package:coach_app/features/entrainement/data/repositories/suivi_objectif
 import 'package:coach_app/features/entrainement/data/services/calcul_progression.dart';
 import 'package:coach_app/features/entrainement/presentation/widgets/ligne_info.dart';
 import 'libelles_suivi.dart';
-
+import 'package:coach_app/features/entrainement/data/repositories/assiduite_repository.dart';
+import 'package:coach_app/features/entrainement/data/services/calcul_assiduite.dart';
 class SuiviDetailScreen extends StatefulWidget {
   final int idSuivi;
 
@@ -29,6 +30,8 @@ class _SuiviDetailScreenState extends State<SuiviDetailScreen> {
   SuiviObjectif? suivi;
   List<MesureProgression> mesures = [];
   ResultatProgression? resultat;
+  final AssiduiteRepository assiduiteRepository = AssiduiteRepository();
+  ResultatAssiduite? assiduite;
   bool chargement = true;
 
   // Seul l'athlète concerné peut saisir ou supprimer. Le coach lit.
@@ -48,7 +51,21 @@ class _SuiviDetailScreenState extends State<SuiviDetailScreen> {
       SuiviObjectif s = await suiviRepository.getSuivi(widget.idSuivi);
       List<MesureProgression> m = await mesureRepository.getMesures(s.id!);
       ResultatProgression r = CalculProgression.calculer(s, m);
+      // Assiduité : seulement si l'objectif est lié à un programme.
+      ResultatAssiduite? a;
 
+      if (s.idProgramme != null) {
+        try {
+          final lignes = await assiduiteRepository.getLignes(
+            idAthlete: s.idAthlete,
+            idProgramme: s.idProgramme!,
+            depuis: s.dateDebut,
+          );
+          a = CalculAssiduite.calculer(lignes);
+        } catch (_) {
+          a = null; // l'assiduité ne doit pas bloquer l'écran
+        }
+      }
       // Objectif atteint : le statut passe automatiquement à ATTEINT.
       String? uid = Supabase.instance.client.auth.currentUser?.id;
 
@@ -66,7 +83,7 @@ class _SuiviDetailScreenState extends State<SuiviDetailScreen> {
       setState(() {
         suivi = s;
         mesures = m;
-        resultat = r;
+        resultat = r; assiduite = a;
         chargement = false;
       });
     } catch (erreur) {
@@ -283,8 +300,11 @@ class _SuiviDetailScreenState extends State<SuiviDetailScreen> {
   }
 
   Widget sectionAdaptation() {
-    List<Proposition> propositions =
-    AdaptationProgramme.proposer(suivi!, resultat!);
+    List<Proposition> propositions = AdaptationProgramme.proposer(
+      suivi!,
+      resultat!,
+      assiduite: assiduite,
+    );
 
     return Column(
       children: propositions.map((proposition) {
@@ -564,7 +584,74 @@ class _SuiviDetailScreenState extends State<SuiviDetailScreen> {
       ),
     );
   }
+  Widget carteAssiduite() {
+    ResultatAssiduite a = assiduite!;
+    Color couleur = couleurNiveauAssiduite(a.niveau);
+    double taux = a.taux ?? 0;
 
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    a.taux == null
+                        ? 'Pas encore de données'
+                        : '${taux.toStringAsFixed(0)} % de présence',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: couleur.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    libelleNiveauAssiduite(a.niveau),
+                    style: TextStyle(
+                      color: couleur,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            LinearProgressIndicator(
+              value: taux / 100,
+              minHeight: 10,
+              color: couleur,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${a.presences} présence(s) · ${a.absences} absence(s) · '
+                  '${a.annulations} annulation(s)',
+            ),
+            if (a.nonRenseignees > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '${a.nonRenseignees} séance(s) terminée(s) sans présence '
+                      'renseignée.',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
   Widget listeMesures() {
     if (mesures.isEmpty) {
       return const SizedBox.shrink();
@@ -620,6 +707,10 @@ class _SuiviDetailScreenState extends State<SuiviDetailScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           carteResume(),
+          if (assiduite != null) ...[
+            titreSection('Assiduité'),
+            carteAssiduite(),
+          ],
           titreSection('Progression'),
           courbe(),
           if (suivi!.statut != 'ABANDONNE') ...[
