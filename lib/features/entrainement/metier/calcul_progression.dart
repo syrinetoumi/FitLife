@@ -1,5 +1,5 @@
-import '../models/mesure_progression.dart';
-import '../models/suivi_objectif.dart';
+import '../data/models/mesure_progression.dart';
+import '../data/models/suivi_objectif.dart';
 
 enum StatutProgression { atteint, enAvance, dansLesTemps, enRetard, sansMesure }
 

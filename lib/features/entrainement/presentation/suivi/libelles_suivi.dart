@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:coach_app/features/entrainement/data/services/calcul_progression.dart';
-import 'package:coach_app/features/entrainement/data/services/calcul_assiduite.dart';
+import 'package:coach_app/features/entrainement/metier/calcul_progression.dart';
+import 'package:coach_app/features/entrainement/metier/calcul_assiduite.dart';
 String libelleStatutProgression(StatutProgression statut) {
   switch (statut) {
     case StatutProgression.atteint:

@@ -14,6 +14,7 @@ import 'package:coach_app/features/entrainement/presentation/widgets/ligne_info.
 import 'libelles_seance.dart';
 import 'seance_form_screen.dart';
 import 'carte_meteo.dart';
+import 'package:coach_app/features/entrainement/data/local/derniere_reservation_locale.dart';
 class SeanceDetailScreen extends StatefulWidget {
   final Seance seance;
 
@@ -97,6 +98,7 @@ class _SeanceDetailScreenState extends State<SeanceDetailScreen> {
   Future<void> reserver() async {
     try {
       await reservationRepository.reserver(seance.id!);
+      await DerniereReservationLocale.enregistrer(seance);
 
       if (mounted) {
         afficherMessage(context, 'Réservation confirmée.');
@@ -130,6 +132,7 @@ class _SeanceDetailScreenState extends State<SeanceDetailScreen> {
 
     try {
       await reservationRepository.annuler(maReservation!.id!);
+      await DerniereReservationLocale.effacerSi(seance.id!);
 
       if (mounted) {
         afficherMessage(context, 'Réservation annulée.');
