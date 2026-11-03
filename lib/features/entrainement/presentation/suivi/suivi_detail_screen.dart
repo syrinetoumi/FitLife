@@ -1,18 +1,18 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:coach_app/features/entrainement/data/services/adaptation_programme.dart';
+import 'package:coach_app/features/entrainement/metier/adaptation_programme.dart';
 import 'package:coach_app/core/utils/alertes.dart';
 import 'package:coach_app/core/utils/outils.dart';
 import 'package:coach_app/features/entrainement/data/models/mesure_progression.dart';
 import 'package:coach_app/features/entrainement/data/models/suivi_objectif.dart';
 import 'package:coach_app/features/entrainement/data/repositories/mesure_progression_repository.dart';
 import 'package:coach_app/features/entrainement/data/repositories/suivi_objectif_repository.dart';
-import 'package:coach_app/features/entrainement/data/services/calcul_progression.dart';
+import 'package:coach_app/features/entrainement/metier/calcul_progression.dart';
 import 'package:coach_app/features/entrainement/presentation/widgets/ligne_info.dart';
 import 'libelles_suivi.dart';
 import 'package:coach_app/features/entrainement/data/repositories/assiduite_repository.dart';
-import 'package:coach_app/features/entrainement/data/services/calcul_assiduite.dart';
+import 'package:coach_app/features/entrainement/metier/calcul_assiduite.dart';
 class SuiviDetailScreen extends StatefulWidget {
   final int idSuivi;
 
