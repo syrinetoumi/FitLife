@@ -5,7 +5,8 @@ import '../../data/models/programme_nutritionnel.dart';
 import '../../data/repositories/dossier_repository.dart';
 import '../../data/repositories/programme_nutri_repository.dart';
 import '../../data/services/frankfurter_service.dart';
-import '../../domain/suivi_progression_service.dart';
+import '../../metier/analyse_evolution_poids.dart';
+import '../../metier/suivi_combine_sport_nutrition.dart';
 
 class SuiviDashboardScreen extends StatefulWidget {
   final bool integre;
@@ -203,11 +204,11 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
     }
 
     final dossier = _dossier!;
-    final bilan = SuiviProgressionService.calculerBilanCombine(
+    final bilan = SuiviCombineSportNutrition.calculerBilan(
       dossier: dossier,
       programmeActif: _programmeActif,
     );
-    final analyse = SuiviProgressionService.analyserEvolutionPoids(dossier);
+    final analyse = AnalyseEvolutionPoids.analyser(dossier);
 
     return ListView(
       padding: const EdgeInsets.all(16),

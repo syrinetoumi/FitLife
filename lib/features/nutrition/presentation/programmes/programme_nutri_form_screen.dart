@@ -3,7 +3,7 @@ import '../../data/models/enums_nutrition.dart';
 import '../../data/models/programme_nutritionnel.dart';
 import '../../data/models/repas.dart';
 import '../../data/repositories/programme_nutri_repository.dart';
-import '../../domain/nutrition_calculator.dart';
+import '../../metier/nutrition_calculator.dart';
 import 'repas_form_screen.dart';
 
 class ProgrammeNutriFormScreen extends StatefulWidget {

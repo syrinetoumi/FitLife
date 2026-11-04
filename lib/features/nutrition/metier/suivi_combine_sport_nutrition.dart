@@ -29,37 +29,10 @@ class BilanSuiviCombine {
   });
 }
 
-/// Service pour le Métier 3 (Suivi nutritionnel) et Métier 4 (Suivi combiné sport + nutrition)
-class SuiviProgressionService {
-  /// Métier 3 : Analyse l'évolution du poids et estime les semaines restantes
-  static Map<String, dynamic> analyserEvolutionPoids(DossierNutritionnel dossier) {
-    final prog = dossier.progressionPourcentage;
-    final restant = dossier.poidsRestantKg;
-
-    // Estimation théorique du temps restant (sur une base saine de 0.5 kg de perte/gain par semaine)
-    final semainesRestantes = restant > 0 ? (restant / 0.5).ceil() : 0;
-
-    String appreciation;
-    if (prog >= 100.0) {
-      appreciation = 'Objectif atteint ! Félicitations !';
-    } else if (prog >= 75.0) {
-      appreciation = 'Dernière ligne droite, vous y êtes presque !';
-    } else if (prog >= 40.0) {
-      appreciation = 'Bonne dynamique en cours, poursuivez les efforts.';
-    } else {
-      appreciation = 'Phase initiale : régularité et patience.';
-    }
-
-    return {
-      'progressionPourcentage': prog,
-      'poidsRestantKg': restant,
-      'semainesEstimees': semainesRestantes,
-      'appreciation': appreciation,
-    };
-  }
-
-  /// Métier 4 : Suivi combiné entraînement + nutrition autour d'un objectif commun
-  static BilanSuiviCombine calculerBilanCombine({
+/// Service Métier 4 : Suivi combiné entraînement + nutrition autour d'un objectif commun
+class SuiviCombineSportNutrition {
+  /// Calcule la synergie et le bilan de coordination sport & nutrition
+  static BilanSuiviCombine calculerBilan({
     required DossierNutritionnel dossier,
     ProgrammeNutritionnel? programmeActif,
     String? entrainementResume,
