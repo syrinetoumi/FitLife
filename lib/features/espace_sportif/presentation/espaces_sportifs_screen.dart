@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import 'donnees_apercu.dart';
+import '../data/metier/disponibilite_metier.dart';
 import 'formulaires_espaces.dart';
 import 'localisation_espace.dart';
 
@@ -9,7 +10,12 @@ const _bleu = AppCouleurs.principale;
 const _menthe = AppCouleurs.accent;
 
 class EspacesSportifsScreen extends StatefulWidget {
-  const EspacesSportifsScreen({super.key, this.donnees});
+  const EspacesSportifsScreen({
+    super.key,
+    this.donnees,
+    this.gestionnaireInitial = true,
+  });
+  final bool gestionnaireInitial;
   final DonneesApercu? donnees;
 
   @override
@@ -18,7 +24,7 @@ class EspacesSportifsScreen extends StatefulWidget {
 
 class _EspacesSportifsScreenState extends State<EspacesSportifsScreen> {
   late final DonneesApercu donnees = widget.donnees ?? DonneesApercu();
-  bool gestionnaire = true;
+  late bool gestionnaire = widget.gestionnaireInitial;
   int page = 0;
   String recherche = '', type = 'TOUS';
   bool avecOffres = false;
@@ -62,41 +68,46 @@ class _EspacesSportifsScreenState extends State<EspacesSportifsScreen> {
           centerTitle: false,
           title: Text(large ? 'FITLIFE / ESPACES' : 'FITLIFE', maxLines: 1),
           actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<bool>(
-                  value: gestionnaire,
-                  items: const [
-                    DropdownMenuItem(
-                      value: true,
-                      child: Text('Démo : gestionnaire'),
-                    ),
-                    DropdownMenuItem(
-                      value: false,
-                      child: Text('Démo : athlète'),
-                    ),
-                  ],
-                  onChanged: (v) => setState(() {
-                    gestionnaire = v!;
-                    page = 0;
-                  }),
+            if (donnees.demonstration)
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<bool>(
+                    value: gestionnaire,
+                    items: const [
+                      DropdownMenuItem(
+                        value: true,
+                        child: Text('Gestionnaire'),
+                      ),
+                      DropdownMenuItem(
+                        value: false,
+                        child: Text('Athlète'),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() {
+                      gestionnaire = v!;
+                      page = 0;
+                    }),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         body: Column(
           children: [
-            Container(
-              width: double.infinity,
-              color: const Color(0xFFE9ECFC),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
-              child: const Text(
-                'APERÇU INTERFACES · Données de démonstration · Modifications non enregistrées après redémarrage',
-                style: TextStyle(fontSize: 12, color: _bleu),
+            if (donnees.demonstration)
+              Container(
+                width: double.infinity,
+                color: const Color(0xFFE9ECFC),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 9,
+                ),
+                child: const Text(
+                  'Modifications locales · Non conservées après redémarrage',
+                  style: TextStyle(fontSize: 12, color: _bleu),
+                ),
               ),
-            ),
             Expanded(
               child: Row(
                 children: [
@@ -195,7 +206,7 @@ class _EspacesSportifsScreenState extends State<EspacesSportifsScreen> {
         const SizedBox(height: 12),
         _titre(
           mesEspaces ? 'MES ESPACES' : 'EXPLORER LES ESPACES',
-          action: mesEspaces
+          action: mesEspaces && donnees.peutCreer
               ? FilledButton.icon(
                   onPressed: () => editerEspace(context, donnees),
                   icon: const Icon(Icons.add),
@@ -353,7 +364,7 @@ class _EspacesSportifsScreenState extends State<EspacesSportifsScreen> {
         donnees: donnees,
         espace: espace,
         gestionnaire: gestionnaire && espace.estGere,
-        athlete: !gestionnaire,
+        athlete: !gestionnaire && donnees.peutSouscrire,
       ),
     ),
   );
@@ -408,7 +419,10 @@ class _EspacesSportifsScreenState extends State<EspacesSportifsScreen> {
       ),
       const SizedBox(height: 24),
       for (final espace in donnees.espaces.where((e) => e.statut == 'ACTIF'))
-        LocalisationEspace(espace: espace),
+        LocalisationEspace(
+          espace: espace,
+          apiDisponible: !donnees.demonstration,
+        ),
     ],
   );
 }
@@ -431,7 +445,10 @@ class _DetailEspace extends StatefulWidget {
 class _DetailEspaceState extends State<_DetailEspace> {
   int section = 0;
   DonneesApercu get donnees => widget.donnees;
-  EspaceApercu get espace => widget.espace;
+  EspaceApercu get espace => donnees.espaces.firstWhere(
+    (e) => e.id == widget.espace.id,
+    orElse: () => widget.espace,
+  );
   bool get gerer => widget.gestionnaire;
 
   @override
@@ -477,10 +494,16 @@ class _DetailEspaceState extends State<_DetailEspace> {
                               : 'Activer cet espace ?',
                           actif
                               ? 'Les nouvelles souscriptions seront bloquées. Les abonnements existants seront conservés.'
-                              : 'L’espace sera visible dans le catalogue de démonstration.',
+                              : 'L’espace sera visible dans le catalogue.',
                         )) {
-                          espace.statut = actif ? 'INACTIF' : 'ACTIF';
-                          donnees.actualiser();
+                          if (!context.mounted) return;
+                          await executerActionEspace(
+                            context,
+                            () => donnees.changerStatutEspace(
+                              espace,
+                              actif ? 'INACTIF' : 'ACTIF',
+                            ),
+                          );
                         }
                       },
                       child: Text(
@@ -561,7 +584,7 @@ class _DetailEspaceState extends State<_DetailEspace> {
         ),
       ),
       const SizedBox(height: 16),
-      LocalisationEspace(espace: espace),
+      LocalisationEspace(espace: espace, apiDisponible: !donnees.demonstration),
       const SizedBox(height: 8),
       Text(_coordonnees(espace)),
       const SizedBox(height: 24),
@@ -722,8 +745,11 @@ class _DetailEspaceState extends State<_DetailEspace> {
                           'Supprimer ce créneau ?',
                           '${jours[jour]} : ${heureTexte(h.debut)} — ${heureTexte(h.fin)}',
                         )) {
-                          donnees.horaires.remove(h);
-                          donnees.actualiser();
+                          if (!mounted) return;
+                          await executerActionEspace(
+                            context,
+                            () => donnees.supprimerHoraire(h),
+                          );
                         }
                       },
                     ),
@@ -1081,11 +1107,13 @@ void _detailOffre(
                 if (athlete) ...[
                   const Divider(),
                   Text(
-                    'Accès du ${dateTexte(jourLocal())} au ${dateTexte(jourLocal().add(Duration(days: offre.duree - 1)))} en souscrivant aujourd’hui.',
+                    'Accès du ${dateTexte(jourLocal())} au ${dateTexte(dateFinAbonnement(jourLocal(), offre.duree))} en souscrivant aujourd’hui.',
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Démonstration locale : aucun paiement ni réservation de séance. Les dates et le prix seront confirmés par le serveur lors de l’intégration.',
+                  Text(
+                    donnees.demonstration
+                        ? 'Aucun paiement intégré ni réservation de séance. Les modifications restent locales.'
+                        : 'Aucun paiement intégré ni réservation de séance. Le serveur confirme le montant et les dates de l’abonnement.',
                   ),
                   if (donnees.dejaAbonne(offre))
                     const Padding(
@@ -1119,21 +1147,22 @@ void _detailOffre(
           if (athlete)
             FilledButton(
               onPressed:
-                  !offre.disponible ||
-                      espace.statut != 'ACTIF' ||
-                      donnees.dejaAbonne(offre)
+                  !souscriptionPossible(offre, espace, donnees.abonnements)
                   ? null
                   : () async {
                       final confirmer = await _confirmer(
                         context,
                         'Confirmer la souscription ?',
-                        '${offre.nom} · ${montantTexte(offre.millimes)} TND pour ${offre.duree} jours. Cette action utilise uniquement les données de démonstration.',
+                        '${offre.nom} · ${montantTexte(offre.millimes)} TND pour ${offre.duree} jours. Le montant et les dates seront confirmés par le serveur.',
                       );
                       if (!confirmer || !c.mounted) return;
-                      donnees.souscrire(offre);
-                      Navigator.pop(c);
+                      final succes = await executerActionEspace(
+                        c,
+                        () => donnees.souscrire(offre),
+                      );
+                      if (succes && c.mounted) Navigator.pop(c);
                     },
-              child: const Text('Souscrire en démo'),
+              child: const Text('Souscrire'),
             ),
         ],
       ),
@@ -1199,27 +1228,34 @@ Widget _carteAbonnement(
 void _detailAbonnement(
   BuildContext context,
   DonneesApercu donnees,
-  AbonnementApercu a,
+  AbonnementApercu initial,
   bool gerer,
 ) {
-  final offre = donnees.offreDe(a);
+  final offre = donnees.offreDe(initial);
   showDialog<void>(
     context: context,
     builder: (c) => ListenableBuilder(
       listenable: donnees,
       builder: (context, _) {
+        final a = donnees.abonnements.firstWhere(
+          (e) => e.id == initial.id,
+          orElse: () => initial,
+        );
         final modifiable = ['ACTIF', 'SUSPENDU'].contains(a.statutEffectif);
         Future<void> changer(String statut) async {
           if (await _confirmer(
             context,
             'Confirmer le changement ?',
             statut == 'ANNULE'
-                ? 'L’annulation est définitive. Aucun remboursement n’est effectué dans cet aperçu.'
+                ? 'L’annulation est définitive. Aucun remboursement n’est effectué par l’application.'
                 : 'La date de fin reste le ${dateTexte(a.fin)}.',
           )) {
             if (!modifiable) return;
-            a.statut = statut;
-            donnees.actualiser();
+            if (!context.mounted) return;
+            await executerActionEspace(
+              context,
+              () => donnees.changerStatutAbonnement(a, statut),
+            );
           }
         }
 
@@ -1281,6 +1317,7 @@ void _detailAbonnement(
   );
 }
 
+// Cette fenêtre vérifie les horaires et le matériel ; elle ne réserve pas le lieu et ne contrôle pas les séances existantes.
 void _verifierDisponibilite(
   BuildContext context,
   DonneesApercu donnees,
@@ -1422,32 +1459,17 @@ void _verifierDisponibilite(
           FilledButton(
             onPressed: () {
               if (!cle.currentState!.validate()) return;
-              final jour = lireDateApercu(date)!.weekday - 1,
-                  d = lireHeure(debut)!,
-                  f = lireHeure(fin)!;
-              final resultat = <String>[];
-              if (espace.statut != 'ACTIF') {
-                resultat.add('L’espace n’est pas actif.');
-              }
-              if (!donnees.horaires.any(
-                (h) =>
-                    h.espace == espace.id &&
-                    h.jour == jour &&
-                    d >= h.debut &&
-                    f <= h.fin,
-              )) {
-                resultat.add(
-                  'Le créneau ne tient pas entièrement dans une plage d’ouverture.',
-                );
-              }
-              for (final exigence in exigences.entries) {
-                final e = donnees.equipements.firstWhere(
-                  (e) => e.id == exigence.key,
-                );
-                if (e.etat != 'BON' || e.quantite < int.parse(exigence.value)) {
-                  resultat.add('${e.nom} : état ou quantité incompatible.');
-                }
-              }
+              final resultat = verifierDisponibilite(
+                espace: espace,
+                horaires: donnees.horaires,
+                equipements: donnees.equipements,
+                date: lireDateApercu(date)!,
+                debut: lireHeure(debut)!,
+                fin: lireHeure(fin)!,
+                exigences: exigences.map(
+                  (id, quantite) => MapEntry(id, int.parse(quantite)),
+                ),
+              );
               modifier(() => raisons = resultat);
             },
             child: const Text('Vérifier'),
@@ -1456,4 +1478,26 @@ void _verifierDisponibilite(
       ),
     ),
   );
+}
+
+// Les erreurs réseau ne doivent jamais laisser croire qu’une modification a réussi.
+Future<bool> executerActionEspace(
+  BuildContext context,
+  Future<void> Function() action,
+) async {
+  try {
+    await action();
+    return true;
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Action impossible. Actualisez les données et vérifiez vos droits ou votre connexion.',
+          ),
+        ),
+      );
+    }
+    return false;
+  }
 }

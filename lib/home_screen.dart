@@ -376,21 +376,10 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
-          // Bouton switch pour basculer Admin / Athlète en 1 clic
+          // Le badge affiche le rôle vérifié du compte connecté.
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: InkWell(
-              onTap: () {
-                setState(() {
-                  basculerModeAdmin();
-                });
-                afficherMessage(
-                  context,
-                  estUtilisateurAdmin()
-                      ? 'Mode Administrateur activé'
-                      : 'Mode Athlète activé',
-                );
-              },
               borderRadius: BorderRadius.circular(20),
               child: Container(
                 padding:
@@ -406,7 +395,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      admin ? '👑 Admin' : '🏃 Athlète',
+                      libelleRoleUtilisateur(),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -417,7 +406,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(width: 4),
                     Icon(
-                      Icons.swap_horiz,
+                      Icons.verified_user_outlined,
                       size: 14,
                       color:
                       admin ? Colors.purple.shade900 : Colors.blue.shade900,
@@ -490,7 +479,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         border: Border.all(color: Colors.white30),
                       ),
                       child: Text(
-                        admin ? '👑 ADMIN' : '🏃 ATHLÈTE',
+                        libelleRoleUtilisateur().toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
@@ -580,7 +569,7 @@ class _HomeScreenState extends State<HomeScreen> {
             context: context,
             titre: 'Nos Espaces Sportifs',
             description:
-            'Réserver terrains, salles de sport et équipements sportifs',
+            'Découvrir les espaces, équipements et offres d’abonnement',
             cheminPhoto: 'assets/images/Home/espaces sportif.jpg',
             cheminPhotoAlternatif: 'assets/images/Home/espaces_sportif.jpg',
             icone: Icons.stadium,

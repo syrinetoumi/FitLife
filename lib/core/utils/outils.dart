@@ -5,11 +5,7 @@ import 'package:coach_app/features/auth/presentation/utilisateur_list_screen.dar
 
 // Afficher un message en bas de l'écran.
 void afficherMessage(BuildContext context, String texte) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(texte),
-    ),
-  );
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texte)));
 }
 
 // Convertir "26/09/2026" en DateTime.
@@ -72,54 +68,59 @@ String? lireHeure(String texte) {
       '${minute.toString().padLeft(2, '0')}';
 }
 
-// ================================================================
-// DÉTECTION DU RÔLE (ADMIN vs ATHLÈTE)
-// ================================================================
-// Variable globale permettant de basculer en mode Admin en 1 clic pour vos tests
-bool modeAdminForce = false;
-
-void basculerModeAdmin() {
-  modeAdminForce = !modeAdminForce;
+// Le rôle provient du profil serveur, jamais d’un e-mail ou de métadonnées modifiables.
+String? _utilisateurRole;
+String? _roleVerifie;
+Future<bool> actualiserRoleUtilisateur() async {
+  _utilisateurRole = null;
+  _roleVerifie = null;
+  final client = Supabase.instance.client;
+  final user = client.auth.currentUser;
+  if (user == null) return false;
+  final profil = await client
+      .from('profiles')
+      .select('role,actif')
+      .eq('id', user.id)
+      .maybeSingle();
+  if (profil == null || profil['actif'] != true) return false;
+  _utilisateurRole = user.id;
+  _roleVerifie = profil['role'] as String?;
+  return true;
 }
 
-// Détecte si l'utilisateur est Admin (via le switch de test OU Supabase)
 bool estUtilisateurAdmin() {
-  // 1. Priorité au switch de test (pour tester sans compte admin)
-  if (modeAdminForce) {
-    return true;
-  }
-
   try {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
-      return false;
-    }
-
-    // 2. Métadonnées Supabase (ex: {"role": "admin"})
-    final dynamic role = user.userMetadata?['role'];
-    if (role != null && role.toString().toLowerCase() == 'admin') {
-      return true;
-    }
-
-    // 3. Fallback pratique par e-mail
-    final email = user.email?.toLowerCase() ?? '';
-    if (email.contains('admin')) {
-      return true;
-    }
-
-    return false;
+    return _utilisateurRole == Supabase.instance.client.auth.currentUser?.id &&
+        _roleVerifie == 'ADMIN';
   } catch (_) {
     return false;
   }
 }
 
-// Élément cliquable du Drawer.
+String libelleRoleUtilisateur() {
+  try {
+    if (_utilisateurRole != Supabase.instance.client.auth.currentUser?.id) {
+      return 'Compte';
+    }
+    return switch (_roleVerifie) {
+      'ADMIN' => 'Administrateur',
+      'GESTIONNAIRE_ESPACE' => 'Gestionnaire',
+      'COACH' => 'Coach',
+      'NUTRITIONNISTE' => 'Nutritionniste',
+      'ATHLETE' => 'Athlète',
+      _ => 'Compte',
+    };
+  } catch (_) {
+    return 'Compte';
+  }
+}
+
 Widget elementMenu(
-    BuildContext context,
-    String titre,
-    IconData icone,
-    String route,
-    ) {
+  BuildContext context,
+  String titre,
+  IconData icone,
+  String route,
+) {
   return InkWell(
     onTap: () {
       Navigator.pop(context);
@@ -135,27 +136,16 @@ Widget elementMenu(
         return;
       }
 
-      Navigator.pushReplacementNamed(
-        context,
-        route,
-      );
+      Navigator.pushReplacementNamed(context, route);
     },
     child: Container(
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          Icon(
-            icone,
-            color: Colors.deepPurple,
-          ),
+          Icon(icone, color: Colors.deepPurple),
           Container(
             margin: const EdgeInsets.only(left: 14),
-            child: Text(
-              titre,
-              style: const TextStyle(
-                fontSize: 15,
-              ),
-            ),
+            child: Text(titre, style: const TextStyle(fontSize: 15)),
           ),
         ],
       ),
@@ -175,11 +165,7 @@ Widget construireDrawer(BuildContext context) {
           color: Colors.deepPurple,
           child: const Column(
             children: [
-              Icon(
-                Icons.sports_soccer,
-                size: 48,
-                color: Colors.white,
-              ),
+              Icon(Icons.sports_soccer, size: 48, color: Colors.white),
               Text(
                 'FITLIFE',
                 style: TextStyle(
@@ -190,10 +176,7 @@ Widget construireDrawer(BuildContext context) {
               ),
               Text(
                 'Coaching sportif',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white70,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.white70),
               ),
             ],
           ),
@@ -202,22 +185,12 @@ Widget construireDrawer(BuildContext context) {
         // ACCUEIL EN PREMIER
         Container(
           margin: const EdgeInsets.only(top: 15),
-          child: Card(
-            child: elementMenu(
-              context,
-              'Accueil',
-              Icons.home,
-              '/',
-            ),
-          ),
+          child: Card(child: elementMenu(context, 'Accueil', Icons.home, '/')),
         ),
 
         // BLOC GESTION
         Container(
-          margin: const EdgeInsets.only(
-            top: 20,
-            bottom: 8,
-          ),
+          margin: const EdgeInsets.only(top: 20, bottom: 8),
           child: const Text(
             'GESTION',
             style: TextStyle(
@@ -231,12 +204,7 @@ Widget construireDrawer(BuildContext context) {
         Card(
           child: Column(
             children: [
-              elementMenu(
-                context,
-                'Événements',
-                Icons.event,
-                '/bas',
-              ),
+              elementMenu(context, 'Événements', Icons.event, '/bas'),
               // Gestion des comptes : visible UNIQUEMENT pour l'Admin
               if (estUtilisateurAdmin())
                 elementMenu(
@@ -251,10 +219,7 @@ Widget construireDrawer(BuildContext context) {
 
         // BLOC ENTRAÎNEMENT
         Container(
-          margin: const EdgeInsets.only(
-            top: 20,
-            bottom: 8,
-          ),
+          margin: const EdgeInsets.only(top: 20, bottom: 8),
           child: const Text(
             'ENTRAÎNEMENT',
             style: TextStyle(
@@ -280,10 +245,7 @@ Widget construireDrawer(BuildContext context) {
 
         // BLOC NAVIGATION
         Container(
-          margin: const EdgeInsets.only(
-            top: 20,
-            bottom: 8,
-          ),
+          margin: const EdgeInsets.only(top: 20, bottom: 8),
           child: const Text(
             'NAVIGATION',
             style: TextStyle(
@@ -297,12 +259,7 @@ Widget construireDrawer(BuildContext context) {
         Card(
           child: Column(
             children: [
-              elementMenu(
-                context,
-                'Navigation en haut',
-                Icons.tab,
-                '/onglets',
-              ),
+              elementMenu(context, 'Navigation en haut', Icons.tab, '/onglets'),
               elementMenu(
                 context,
                 'Navigation en bas',

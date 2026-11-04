@@ -30,34 +30,19 @@ class ProfilRepository {
 
     if (resultat.isEmpty) {
       throw Exception(
-        'Aucune modification enregistrée dans Supabase (0 ligne mise à jour).\n\n'
-            'Exécutez dans le SQL Editor de Supabase :\n'
-            'ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;',
+        'Modification refusée. Vérifiez votre rôle administrateur et les politiques d’accès.',
       );
     }
   }
 
   // Vérifie si un compte utilisateur est actif (utilisé au Login)
   Future<bool> estCompteActif(String userId) async {
-    try {
-      final data = await client
-          .from('profiles')
-          .select('actif')
-          .eq('id', userId)
-          .maybeSingle();
-
-      if (data == null) {
-        return true;
-      }
-
-      if (data['actif'] == null) {
-        return true;
-      }
-
-      return data['actif'] as bool;
-    } catch (_) {
-      return true;
-    }
+    final data = await client
+        .from('profiles')
+        .select('actif')
+        .eq('id', userId)
+        .maybeSingle();
+    return data?['actif'] == true;
   }
 
   // Vérifie si un utilisateur possède le rôle ADMIN

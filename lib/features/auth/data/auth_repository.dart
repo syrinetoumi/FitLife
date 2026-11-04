@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/utils/outils.dart';
+
 class AuthRepository {
   final SupabaseClient client = Supabase.instance.client;
 
@@ -8,6 +10,14 @@ class AuthRepository {
       email: email.trim(),
       password: motDePasse,
     );
+    try {
+      if (!await actualiserRoleUtilisateur()) {
+        throw const AuthException('Compte inactif ou profil indisponible.');
+      }
+    } catch (_) {
+      await client.auth.signOut();
+      rethrow;
+    }
   }
 
   // true : l'utilisateur est connecté tout de suite.
@@ -37,10 +47,10 @@ class AuthRepository {
 
   // Vérifie le code (connecte l'utilisateur) puis change le mot de passe.
   Future<void> reinitialiser(
-      String email,
-      String code,
-      String nouveauMotDePasse,
-      ) async {
+    String email,
+    String code,
+    String nouveauMotDePasse,
+  ) async {
     await client.auth.verifyOTP(
       type: OtpType.recovery,
       email: email.trim(),

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../data/services/localisation_service.dart';
 
 import 'donnees_apercu.dart';
-
-String? requis(String? valeur) => valeur == null || valeur.trim().isEmpty
-    ? 'Ce champ est obligatoire.'
-    : null;
+import '../data/metier/saisie_metier.dart';
+export '../data/metier/saisie_metier.dart' show requis;
+import '../data/metier/disponibilite_metier.dart';
 
 Widget champ(
   String label,
@@ -16,6 +18,7 @@ Widget champ(
   String? aide,
   bool calendrier = false,
   bool horloge = false,
+  Key? cle,
 }) => calendrier || horloge
     ? _ChampDateHeure(
         label: label,
@@ -26,6 +29,7 @@ Widget champ(
         estDate: calendrier,
       )
     : TextFormField(
+        key: cle,
         initialValue: initial,
         onChanged: changer,
         validator: valider,
@@ -137,13 +141,16 @@ Widget choix(
   onChanged: changer,
 );
 
+// Le formulaire attend l’enregistrement et conserve les valeurs saisies si la sauvegarde échoue.
 Future<void> ouvrirFormulaire(
   BuildContext context,
   String titre,
-  List<Widget> Function(StateSetter) champs,
-  VoidCallback enregistrer,
+  List<Widget> Function(StateSetter, BuildContext) champs,
+  Future<void> Function() enregistrer,
 ) async {
   final cle = GlobalKey<FormState>();
+  bool enCours = false;
+  String? erreur;
   await showDialog<void>(
     context: context,
     routeSettings: RouteSettings(name: '/espaces-sportifs/formulaire/$titre'),
@@ -162,7 +169,14 @@ Future<void> ouvrirFormulaire(
                 children: [
                   const Text('Les champs marqués * sont obligatoires.'),
                   const SizedBox(height: 20),
-                  for (final widget in champs(modifier))
+                  if (erreur != null)
+                    Text(
+                      erreur!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  for (final widget in champs(modifier, context))
                     Padding(
                       padding: const EdgeInsets.only(bottom: 18),
                       child: widget,
@@ -174,23 +188,38 @@ Future<void> ouvrirFormulaire(
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
+            onPressed: enCours ? null : () => Navigator.pop(dialogContext),
             child: const Text('Annuler'),
           ),
           FilledButton(
-            onPressed: () {
-              if (!cle.currentState!.validate()) return;
-              enregistrer();
-              Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Modifications enregistrées dans la démonstration.',
-                  ),
-                ),
-              );
-            },
-            child: const Text('Enregistrer'),
+            onPressed: enCours
+                ? null
+                : () async {
+                    if (!cle.currentState!.validate()) return;
+                    modifier(() {
+                      enCours = true;
+                      erreur = null;
+                    });
+                    try {
+                      await enregistrer();
+                    } catch (_) {
+                      if (dialogContext.mounted) {
+                        modifier(() {
+                          enCours = false;
+                          erreur = 'Enregistrement impossible. Vérifiez la connexion, vos droits et les valeurs saisies.';
+                        });
+                      }
+                      return;
+                    }
+                    if (!dialogContext.mounted || !context.mounted) return;
+                    Navigator.pop(dialogContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Modifications enregistrées.'),
+                      ),
+                    );
+                  },
+            child: Text(enCours ? 'Enregistrement…' : 'Enregistrer'),
           ),
         ],
       ),
@@ -214,27 +243,78 @@ Future<void> editerEspace(
   var longitude = espace?.longitude?.toString() ?? '';
   var statut = espace?.statut ?? 'INACTIF';
 
-  String? coordonnee(String? valeur, int limite) {
-    if (latitude.trim().isEmpty != longitude.trim().isEmpty) {
-      return 'Renseignez les deux coordonnées, ou aucune.';
-    }
-    if (valeur == null || valeur.trim().isEmpty) return null;
-    final nombre = double.tryParse(valeur.replaceAll(',', '.'));
-    return nombre == null || !nombre.isFinite || nombre.abs() > limite
-        ? 'Valeur attendue entre -$limite et $limite.'
-        : null;
-  }
-
   await ouvrirFormulaire(
     context,
     espace == null ? 'Créer un espace' : 'Modifier l’espace',
-    (modifier) => [
+    (modifier, formulaireContext) => [
       champ('Nom *', nom, (v) => nom = v, valider: requis),
       choix('Type *', type, {
         '': 'Choisir un type',
         ...typesEspace,
       }, (v) => modifier(() => type = v!)),
       champ('Adresse *', adresse, (v) => adresse = v, valider: requis),
+      if (!donnees.demonstration)
+        OutlinedButton.icon(
+          icon: const Icon(Icons.search),
+          label: const Text('Rechercher les coordonnées de cette adresse'),
+          onPressed: () async {
+            if (adresse.trim().length < 3) return;
+            try {
+              // La recherche reste volontaire ; le gestionnaire choisit le lieu avant de remplacer les coordonnées.
+              final geocodage = await LocalisationService(
+                Supabase.instance.client,
+              ).geocoder(adresse);
+              final resultats = geocodage.resultats;
+              if (!formulaireContext.mounted) return;
+              final resultat = await showDialog<Map<String, dynamic>>(
+                context: formulaireContext,
+                builder: (c) => SimpleDialog(
+                  title: const Text('Choisir un lieu public'),
+                  children: [
+                    if (resultats.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          'Aucun résultat. Vous pouvez saisir les coordonnées manuellement.',
+                        ),
+                      ),
+                    for (final r in resultats)
+                      SimpleDialogOption(
+                        onPressed: () => Navigator.pop(c, r),
+                        child: Text(r['nom'] as String),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(geocodage.attribution),
+                    ),
+                  ],
+                ),
+              );
+              if (resultat != null && formulaireContext.mounted) {
+                modifier(() {
+                  latitude = resultat['latitude'].toString();
+                  longitude = resultat['longitude'].toString();
+                });
+              }
+            } catch (erreur) {
+              if (formulaireContext.mounted) {
+                ScaffoldMessenger.of(formulaireContext).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      erreur is StateError
+                          ? erreur.message.toString()
+                          : 'Service indisponible. Réessayez plus tard.',
+                    ),
+                  ),
+                );
+              }
+            }
+          },
+        ),
+      if (!donnees.demonstration)
+        const Text(
+          'Recherche manuelle d’un établissement public via le service de géocodage. Ne saisissez pas une adresse privée ou confidentielle.',
+        ),
       champ('Description', description, (v) => description = v, lignes: 3),
       champ(
         'Téléphone',
@@ -247,39 +327,29 @@ Future<void> editerEspace(
         email,
         (v) => email = v,
         clavier: TextInputType.emailAddress,
-        valider: (v) =>
-            v!.trim().isEmpty ||
-                RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v.trim())
-            ? null
-            : 'Adresse e-mail invalide.',
+        valider: validerEmailEspace,
       ),
       champ(
         'Site web',
         site,
         (v) => site = v,
         clavier: TextInputType.url,
-        valider: (v) {
-          if (v!.trim().isEmpty) return null;
-          final uri = Uri.tryParse(v.trim());
-          return uri != null &&
-                  ['http', 'https'].contains(uri.scheme) &&
-                  uri.host.isNotEmpty
-              ? null
-              : 'Utilisez une adresse http:// ou https:// valide.';
-        },
+        valider: validerSiteEspace,
       ),
       champ(
         'Latitude',
         latitude,
         (v) => latitude = v,
-        valider: (v) => coordonnee(v, 90),
+        cle: ValueKey('latitude:$latitude'),
+        valider: (v) => validerCoordonneeEspace(v, 90, latitude, longitude),
         aide: 'Facultatif. Vous pouvez enregistrer sans coordonnées.',
       ),
       champ(
         'Longitude',
         longitude,
         (v) => longitude = v,
-        valider: (v) => coordonnee(v, 180),
+        cle: ValueKey('longitude:$longitude'),
+        valider: (v) => validerCoordonneeEspace(v, 180, latitude, longitude),
       ),
       if (espace != null)
         choix('Statut', statut, {
@@ -292,16 +362,15 @@ Future<void> editerEspace(
           'Votre espace sera créé inactif. Vous pourrez l’activer depuis sa fiche.',
         ),
     ],
-    () {
-      final resultat =
-          espace ??
-          EspaceApercu(
-            id: donnees.prochainId(),
-            nom: '',
-            type: type,
-            adresse: '',
-            description: '',
-          );
+    () async {
+      final resultat = EspaceApercu(
+        id: espace?.id ?? donnees.prochainId(),
+        estGere: espace?.estGere ?? true,
+        nom: '',
+        type: type,
+        adresse: '',
+        description: '',
+      );
       resultat
         ..nom = nom.trim()
         ..type = type
@@ -313,8 +382,7 @@ Future<void> editerEspace(
         ..statut = statut
         ..latitude = double.tryParse(latitude.replaceAll(',', '.'))
         ..longitude = double.tryParse(longitude.replaceAll(',', '.'));
-      if (espace == null) donnees.espaces.add(resultat);
-      donnees.actualiser();
+      await donnees.enregistrerEspace(resultat, nouveau: espace == null);
     },
   );
 }
@@ -332,7 +400,7 @@ Future<void> editerEquipement(
   await ouvrirFormulaire(
     context,
     equipement == null ? 'Ajouter un équipement' : 'Modifier l’équipement',
-    (modifier) => [
+    (modifier, formulaireContext) => [
       champ('Nom *', nom, (v) => nom = v, valider: requis),
       champ('Description', description, (v) => description = v, lignes: 2),
       champ(
@@ -341,35 +409,25 @@ Future<void> editerEquipement(
         (v) => quantite = v,
         clavier: TextInputType.number,
         aide: 'Une quantité de 0 retire l’équipement des disponibilités.',
-        valider: (v) => int.tryParse(v ?? '') == null || int.parse(v!) < 0
-            ? 'Saisissez un entier positif ou nul.'
-            : null,
+        valider: validerQuantiteEquipement,
       ),
       choix('État *', etat, {
         '': 'Choisir un état',
         ...etatsEquipement,
       }, (v) => modifier(() => etat = v!)),
     ],
-    () {
-      if (equipement == null) {
-        donnees.equipements.add(
-          EquipementApercu(
-            donnees.prochainId(),
-            espace.id,
-            nom.trim(),
-            description.trim(),
-            int.parse(quantite),
-            etat,
-          ),
-        );
-      } else {
-        equipement
-          ..nom = nom.trim()
-          ..description = description.trim()
-          ..quantite = int.parse(quantite)
-          ..etat = etat;
-      }
-      donnees.actualiser();
+    () async {
+      await donnees.enregistrerEquipement(
+        EquipementApercu(
+          equipement?.id ?? donnees.prochainId(),
+          espace.id,
+          nom.trim(),
+          description.trim(),
+          int.parse(quantite),
+          etat,
+        ),
+        nouveau: equipement == null,
+      );
     },
   );
 }
@@ -386,7 +444,7 @@ Future<void> editerHoraire(
   await ouvrirFormulaire(
     context,
     horaire == null ? 'Ajouter un créneau' : 'Modifier le créneau',
-    (modifier) => [
+    (modifier, formulaireContext) => [
       choix('Jour *', '$jour', {
         for (var i = 0; i < jours.length; i++) '$i': jours[i],
       }, (v) => modifier(() => jour = int.parse(v!))),
@@ -404,35 +462,30 @@ Future<void> editerHoraire(
         fin,
         (v) => fin = v,
         horloge: true,
-        valider: (v) {
-          final d = lireHeure(debut), f = lireHeure(v ?? '');
-          if (f == null) return 'Heure invalide (HH:mm).';
-          if (d == null || f <= d) {
-            return 'La fermeture doit suivre l’ouverture le même jour.';
-          }
-          if (donnees.horaires.any(
-            (h) =>
-                h != horaire &&
-                h.espace == espace.id &&
-                h.jour == jour &&
-                d < h.fin &&
-                f > h.debut,
-          )) {
-            return 'Ce créneau chevauche un horaire existant.';
-          }
-          return null;
-        },
+        valider: (v) => validerFermeture(
+          ouverture: debut,
+          fermeture: v,
+          horaires: donnees.horaires,
+          espace: espace.id,
+          jour: jour,
+          ancien: horaire,
+        ),
       ),
       const Text(
         'Plusieurs créneaux par jour sont possibles. Sans créneau, l’espace est fermé.',
       ),
     ],
-    () {
-      if (horaire != null) donnees.horaires.remove(horaire);
-      donnees.horaires.add(
-        HoraireApercu(espace.id, jour, lireHeure(debut)!, lireHeure(fin)!),
+    () async {
+      await donnees.enregistrerHoraire(
+        HoraireApercu(
+          espace.id,
+          jour,
+          lireHeure(debut)!,
+          lireHeure(fin)!,
+          id: horaire?.id,
+        ),
+        ancien: horaire,
       );
-      donnees.actualiser();
     },
   );
 }
@@ -450,11 +503,13 @@ Future<void> editerOffre(
   var duree = offre?.duree.toString() ?? '30';
   var debut = dateSaisie(offre?.debut ?? jourLocal());
   var fin = offre?.fin == null ? '' : dateSaisie(offre!.fin!);
-  var statut = offre?.statut ?? 'INACTIVE';
+  var statut = offre?.statut == 'EXPIREE'
+      ? 'INACTIVE'
+      : offre?.statut ?? 'INACTIVE';
   await ouvrirFormulaire(
     context,
     offre == null ? 'Créer une offre' : 'Modifier l’offre',
-    (modifier) => [
+    (modifier, formulaireContext) => [
       champ('Nom *', nom, (v) => nom = v, valider: requis),
       champ('Description', description, (v) => description = v, lignes: 3),
       choix(
@@ -471,25 +526,14 @@ Future<void> editerOffre(
         (v) => prix = v,
         clavier: const TextInputType.numberWithOptions(decimal: true),
         aide: 'Jusqu’à 3 décimales. Exemple : 80,500',
-        valider: (v) => lireMillimes(v ?? '') == null
-            ? 'Prix positif ou nul, avec 3 décimales maximum.'
-            : null,
+        valider: validerPrixOffre,
       ),
       champ(
         'Durée en jours *',
         duree,
         (v) => duree = v,
         clavier: TextInputType.number,
-        valider: (v) {
-          final jours = int.tryParse(v ?? '');
-          if (jours == null || jours < 1 || jours > 36500) {
-            return 'Durée attendue entre 1 et 36 500 jours.';
-          }
-          if (type == 'SEANCE' && jours != 1) {
-            return 'Un accès à la journée dure exactement 1 jour.';
-          }
-          return null;
-        },
+        valider: (v) => validerDureeOffre(v, type),
       ),
       champ(
         'Début des ventes *',
@@ -507,13 +551,7 @@ Future<void> editerOffre(
         (v) => fin = v,
         calendrier: true,
         aide: 'Facultatif. Format AAAA-MM-JJ',
-        valider: (v) {
-          if (v!.isEmpty) return null;
-          final date = lireDateApercu(v), premiere = lireDateApercu(debut);
-          return date == null || premiere == null || date.isBefore(premiere)
-              ? 'La fin doit être une date valide après ou égale au début.'
-              : null;
-        },
+        valider: (v) => validerFinVentes(v, debut),
       ),
       choix('Statut', statut, {
         'INACTIVE': 'Inactive',
@@ -523,19 +561,17 @@ Future<void> editerOffre(
         'Les abonnements existants conservent leur prix et leurs dates. Un pack ne compte pas les visites.',
       ),
     ],
-    () {
-      final resultat =
-          offre ??
-          OffreApercu(
-            id: donnees.prochainId(),
-            espace: espace.id,
-            nom: '',
-            description: '',
-            type: type,
-            millimes: 0,
-            duree: 1,
-            debut: jourLocal(),
-          );
+    () async {
+      final resultat = OffreApercu(
+        id: offre?.id ?? donnees.prochainId(),
+        espace: espace.id,
+        nom: '',
+        description: '',
+        type: type,
+        millimes: 0,
+        duree: 1,
+        debut: jourLocal(),
+      );
       resultat
         ..nom = nom.trim()
         ..description = description.trim()
@@ -545,8 +581,7 @@ Future<void> editerOffre(
         ..debut = lireDateApercu(debut)!
         ..fin = fin.isEmpty ? null : lireDateApercu(fin)
         ..statut = statut;
-      if (offre == null) donnees.offres.add(resultat);
-      donnees.actualiser();
+      await donnees.enregistrerOffre(resultat, nouveau: offre == null);
     },
   );
 }

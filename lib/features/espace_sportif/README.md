@@ -1,3 +1,33 @@
+# Sports spaces integration
+
+Automatic route estimation was added on **2026-11-04**. Opening “Estimer distance et durée” reads the device’s current foreground location and calculates the walking route immediately. Changing travel mode recalculates automatically; no starting coordinates are entered. Denied permission, disabled location and a GPS timeout show recovery guidance. Location is read once per estimate and is not saved or tracked in the background. Android location permissions and the iOS usage description are configured; an iOS build must use `BYPASS_PERMISSION_LOCATION_ALWAYS=1` with Geolocator’s Swift Package Manager integration. iOS hardware was not tested.
+
+The orchestration is in `data/metier/estimation_metier.dart`; device access is in `data/services/position_appareil_service.dart`; the dialog is `presentation/estimation_trajet_dialog.dart`.
+
+Business logic was reorganized on **2026-11-04** under `data/metier/`:
+
+- `disponibilite_metier.dart`: opening-hour compatibility, equipment requirements and overlap validation.
+- `offres_metier.dart`: offer availability, effective expiry and sales/duration validation.
+- `abonnements_metier.dart`: subscription eligibility, duplicate detection, effective status and preview date/amount snapshots.
+- `saisie_metier.dart`: shared input validation for contacts, coordinates and quantities.
+- `valeurs_metier.dart`: Africa/Tunis business dates, exact millime conversion and date/time parsing/formatting.
+
+The five shared entities now live in `data/models/modeles_espaces.dart`. Presentation retains widgets, dialogs and preview state; the previous preview library re-exports models/rules for existing callers. Repository and HTTP adapters remain in their own directories. Authoritative production subscription and ownership rules remain in the existing Supabase SQL functions; this source organization change does not modify the database.
+
+Current implementation: **2026-11-03**, on `espaces-sportifs`, based on `26fc6c1` plus uncommitted changes.
+
+The main application now registers `/espaces` (used by the home card) and `/espaces-sportifs`. Both open `presentation/espaces_connectes_screen.dart`, which loads the authenticated server role and real RLS-protected data. The demonstration entry point remains separate; its historical notes are preserved below.
+
+`data/repositories/espaces_repository.dart` connects all five existing entities. Space ownership is derived by the server default; subscription identity, amount, dates and transitions use the existing RPCs. The validated forms await saves and retain inputs when a save fails. Confirmed writes are not reported as failed merely because a subsequent refresh fails. Subscriber history is preserved through deactivation/retirement, while hours can be removed.
+
+The local cache stores a user-keyed, versioned catalogue, excludes subscription records and role authority, and is displayed explicitly in read-only mode. Refresh restores live access. Business dates use Africa/Tunis; the server remains authoritative for subscription decisions. `data/services/localisation_service.dart` calls the authenticated location function for manual geocoding and route estimates. Provider success paths require the user’s deferred configuration.
+
+See the [backend setup and verification notes](../../../supabase/README.md) for private files, deployment, accounts, API limitations and database checks. Training session occupancy remains outside this delivery; the availability interface clearly states this limit. No payment collection or visit counting is implemented.
+
+The following is a historical interface-preview delivery record. Statements about missing integration, transitive dependencies, device dates or previous test counts describe that earlier preview.
+
+---
+
 # Sports-spaces interface preview
 
 This module contains French-language Flutter interfaces for all five sports-space entities. It reuses the existing theme without modifying shared application code, navigation, dependencies, authentication or Supabase.

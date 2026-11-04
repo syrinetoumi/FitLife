@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/supabase_config.dart';
+import 'core/utils/outils.dart';
+import 'features/espace_sportif/presentation/espaces_connectes_screen.dart';
 import 'features/evenement/presentation/categories/categorie_list_screen.dart';
 import 'features/evenement/presentation/evenements/evenement_list_screen.dart';
 import 'home_screen.dart';
@@ -22,18 +24,15 @@ Future<void> main() async {
     url: SupabaseConfig.url,
     publishableKey: SupabaseConfig.clePublishable,
   );
-  // Connexion de test : active seulement si les valeurs sont fournies au lancement.
-  const emailTest = String.fromEnvironment('DEV_EMAIL');
-  const mdpTest = String.fromEnvironment('DEV_PASSWORD');
-
-  if (emailTest.isNotEmpty && mdpTest.isNotEmpty) {
+  if (Supabase.instance.client.auth.currentSession != null) {
     try {
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: emailTest,
-        password: mdpTest,
-      );
-    } catch (erreur) {
-      debugPrint('Connexion de test impossible : $erreur');
+      if (!await actualiserRoleUtilisateur().timeout(
+        const Duration(seconds: 10),
+      )) {
+        await Supabase.instance.client.auth.signOut();
+      }
+    } catch (_) {
+      // La navigation reste disponible en cas de réseau absent ; les droits restent fermés.
     }
   }
 
@@ -54,6 +53,8 @@ class MyApp extends StatelessWidget {
           : '/',
       routes: {
         '/': (context) => const HomeScreen(),
+        '/espaces': (context) => const EspacesConnectesScreen(),
+        '/espaces-sportifs': (context) => const EspacesConnectesScreen(),
         '/evenements': (context) => const EvenementListScreen(),
         '/categories': (context) => const CategorieListScreen(),
         '/inscriptions': (context) => const InscriptionListScreen(),
@@ -65,7 +66,6 @@ class MyApp extends StatelessWidget {
         '/inscription': (context) => const RegisterScreen(),
         '/mot-de-passe-oublie': (context) => const ForgotPasswordScreen(),
       },
-
     );
   }
 }

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// Le paquet est déjà résolu dans le verrou existant. Ne pas modifier les dépendances partagées ici.
-// ignore: depend_on_referenced_packages
 import 'package:url_launcher/url_launcher.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../data/services/localisation_service.dart';
 
 import '../../../core/theme/app_theme.dart';
 import 'donnees_apercu.dart';
+import '../data/metier/estimation_metier.dart';
+import '../data/services/position_appareil_service.dart';
+import 'estimation_trajet_dialog.dart';
 
 String destinationEspace(EspaceApercu espace) =>
     espace.latitude != null && espace.longitude != null
@@ -52,7 +56,12 @@ Future<void> ouvrirLienLocalisation(BuildContext context, Uri lien) async {
 }
 
 class LocalisationEspace extends StatelessWidget {
-  const LocalisationEspace({super.key, required this.espace});
+  const LocalisationEspace({
+    super.key,
+    required this.espace,
+    this.apiDisponible = false,
+  });
+  final bool apiDisponible;
   final EspaceApercu espace;
 
   @override
@@ -101,6 +110,14 @@ class LocalisationEspace extends StatelessWidget {
                 icon: const Icon(Icons.directions_outlined),
                 label: const Text('Itinéraire'),
               ),
+              if (apiDisponible)
+                OutlinedButton.icon(
+                  onPressed: espace.latitude == null
+                      ? null
+                      : () => estimerTrajet(context, espace),
+                  icon: const Icon(Icons.route_outlined),
+                  label: const Text('Estimer distance et durée'),
+                ),
               TextButton.icon(
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: espace.adresse));
@@ -208,6 +225,24 @@ void _itineraire(BuildContext context, EspaceApercu espace) {
           ),
         ],
       ),
+    ),
+  );
+}
+
+// L’ouverture déclenche la localisation du téléphone et le calcul automatique du trajet choisi.
+Future<void> estimerTrajet(BuildContext context, EspaceApercu espace) async {
+  final position = PositionAppareilService();
+  final metier = EstimationMetier(
+    LocalisationService(Supabase.instance.client),
+    position,
+  );
+  await showDialog<void>(
+    context: context,
+    routeSettings: const RouteSettings(name: '/espaces-sportifs/estimation'),
+    builder: (_) => EstimationTrajetDialog(
+      destination: espace.nom,
+      estimer: (profil) => metier.estimer(espace.id, profil),
+      ouvrirReglages: position.ouvrirReglages,
     ),
   );
 }

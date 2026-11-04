@@ -1,0 +1,4 @@
+project_id = "fitlife"
+
+[functions.espaces-localisation]
+verify_jwt = false
