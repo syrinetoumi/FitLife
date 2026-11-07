@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'presence_seance_screen.dart';
 import 'package:coach_app/core/utils/alertes.dart';
 import 'package:coach_app/core/utils/outils.dart';
 import 'package:coach_app/features/entrainement/data/models/enums.dart';
@@ -13,7 +13,8 @@ import 'package:coach_app/features/entrainement/presentation/widgets/carte_image
 import 'package:coach_app/features/entrainement/presentation/widgets/ligne_info.dart';
 import 'libelles_seance.dart';
 import 'seance_form_screen.dart';
-
+import 'carte_meteo.dart';
+import 'package:coach_app/features/entrainement/data/local/derniere_reservation_locale.dart';
 class SeanceDetailScreen extends StatefulWidget {
   final Seance seance;
 
@@ -97,6 +98,7 @@ class _SeanceDetailScreenState extends State<SeanceDetailScreen> {
   Future<void> reserver() async {
     try {
       await reservationRepository.reserver(seance.id!);
+      await DerniereReservationLocale.enregistrer(seance);
 
       if (mounted) {
         afficherMessage(context, 'Réservation confirmée.');
@@ -130,6 +132,7 @@ class _SeanceDetailScreenState extends State<SeanceDetailScreen> {
 
     try {
       await reservationRepository.annuler(maReservation!.id!);
+      await DerniereReservationLocale.effacerSi(seance.id!);
 
       if (mounted) {
         afficherMessage(context, 'Réservation annulée.');
@@ -189,6 +192,18 @@ class _SeanceDetailScreenState extends State<SeanceDetailScreen> {
         );
       }
     }
+  }
+
+
+  Future<void> ouvrirPresence() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PresenceSeanceScreen(seance: seance),
+      ),
+    );
+
+    charger();
   }
 
   // ---------- Affichage ----------
@@ -295,8 +310,7 @@ class _SeanceDetailScreenState extends State<SeanceDetailScreen> {
                       margin: const EdgeInsets.only(top: 8),
                       child: Row(
                         children: [
-                          const Icon(Icons.person, color: Colors.deepPurple),
-                          Container(
+                          Icon(Icons.person, color: Theme.of(context).colorScheme.primary),                          Container(
                             margin: const EdgeInsets.only(left: 10),
                             child: Text(nom),
                           ),
@@ -308,6 +322,12 @@ class _SeanceDetailScreenState extends State<SeanceDetailScreen> {
             ),
           ),
         ),
+        if (seance.statut == StatutSeance.TERMINEE)
+          ElevatedButton.icon(
+            onPressed: ouvrirPresence,
+            icon: const Icon(Icons.fact_check),
+            label: const Text('FEUILLE DE PRÉSENCE'),
+          ),
         Row(
           children: [
             Expanded(
@@ -398,7 +418,7 @@ class _SeanceDetailScreenState extends State<SeanceDetailScreen> {
               ),
             ),
           ),
-        // À venir : météo (Open-Meteo).
+        CarteMeteo(seance: seance),
         Container(
           margin: const EdgeInsets.only(top: 12),
           child: proprietaire ? blocCoach() : blocAthlete(),

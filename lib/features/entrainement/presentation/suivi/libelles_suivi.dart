@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:coach_app/features/entrainement/data/services/calcul_progression.dart';
-
+import 'package:coach_app/features/entrainement/metier/calcul_progression.dart';
+import 'package:coach_app/features/entrainement/metier/calcul_assiduite.dart';
 String libelleStatutProgression(StatutProgression statut) {
   switch (statut) {
     case StatutProgression.atteint:
@@ -62,4 +62,29 @@ Widget pastilleProgression(StatutProgression statut) {
       ),
     ),
   );
+}
+String libelleNiveauAssiduite(NiveauAssiduite niveau) {
+  switch (niveau) {
+    case NiveauAssiduite.tresAssidu:
+      return 'Très assidu';
+    case NiveauAssiduite.moyen:
+      return 'Assiduité moyenne';
+    case NiveauAssiduite.faible:
+      return 'Assiduité faible';
+    case NiveauAssiduite.aucuneDonnee:
+      return 'Pas de données';
+  }
+}
+
+Color couleurNiveauAssiduite(NiveauAssiduite niveau) {
+  switch (niveau) {
+    case NiveauAssiduite.tresAssidu:
+      return Colors.green;
+    case NiveauAssiduite.moyen:
+      return Colors.orange;
+    case NiveauAssiduite.faible:
+      return Colors.red;
+    case NiveauAssiduite.aucuneDonnee:
+      return Colors.grey;
+  }
 }
