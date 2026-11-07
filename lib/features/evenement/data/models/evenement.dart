@@ -47,6 +47,8 @@ class Evenement {
   });
 
   // Les noms des colonnes sont ceux de la table "evenements" (Supabase).
+
+  //conversion JSON/Map
   Map<String, dynamic> toMap() {
     return {
       'nom': nom,

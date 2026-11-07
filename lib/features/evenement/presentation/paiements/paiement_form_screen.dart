@@ -14,9 +14,12 @@ import 'confirmation_paiement_screen.dart';
 class PaiementFormScreen extends StatefulWidget {
   final PaiementEvenement? paiement;
 
-  // MÉTIER 3 : quand l'écran est ouvert depuis le parcours
-  // "inscription puis paiement", l'inscription est imposée
-  // (l'utilisateur ne peut pas en choisir une autre).
+  // ========================================================================
+  //  L'IMPLÉMENTATION DU METIER 3 (Parcours Unifié 1-à-1)
+  // Quand l'écran est ouvert depuis le parcours "inscription puis paiement"
+  // (avec statut 'CONFIRMEE'), l'inscription est imposée en paramètre :
+  // l'utilisateur ne peut pas en choisir une autre (carte verrouillée).
+  // ========================================================================
   final Inscription? inscriptionChoisie;
 
   const PaiementFormScreen({
@@ -56,7 +59,7 @@ class _PaiementFormScreenState extends State<PaiementFormScreen> {
       methode = widget.paiement!.methode;
     }
 
-    // MÉTIER 3 : inscription imposée par le parcours.
+    // METIER 3 : inscription imposée par le parcours.
     if (widget.inscriptionChoisie != null) {
       idInscription = widget.inscriptionChoisie!.idInscription;
     }
@@ -79,7 +82,7 @@ class _PaiementFormScreenState extends State<PaiementFormScreen> {
         return;
       }
 
-      // MÉTIER 3 : montant automatique = prix de l'événement
+      // METIER 3 : montant automatique = prix de l'événement
       // de l'inscription imposée.
       double nouveauMontant = montant;
       if (widget.inscriptionChoisie != null) {
@@ -134,7 +137,8 @@ class _PaiementFormScreenState extends State<PaiementFormScreen> {
   }
 
   Future<void> choisirInscription(Inscription inscription) async {
-    // Relation 1-1 : une inscription ne peut avoir qu'un seul paiement.
+    //  METIER 3 - Règle de relation 1-à-1 stricte
+    // Une inscription ne peut avoir qu'un seul et unique paiement dans la base.
     if (widget.paiement == null) {
       try {
         bool existe = await paiementRepository.inscriptionDejaPayee(
@@ -193,7 +197,9 @@ class _PaiementFormScreenState extends State<PaiementFormScreen> {
         await paiementRepository.ajouter(paiement);
 
         // ========================================================
-        // MÉTIER 3 : dernière étape du parcours => CONFIRMATION.
+        //  METIER 3 - Clôture du parcours unifié
+        // Redirection immédiate vers le reçu / confirmation de paiement
+        // avec passage de tous les détails de l'événement et de l'athlète.
         // ========================================================
         if (widget.inscriptionChoisie != null && mounted) {
           await Navigator.push(
@@ -248,7 +254,7 @@ class _PaiementFormScreenState extends State<PaiementFormScreen> {
   }
 
   Widget choixInscription() {
-    // MÉTIER 3 : inscription imposée par le parcours
+    // METIER 3 : inscription imposée par le parcours
     // => une seule carte, non cliquable (verrouillée).
     if (widget.inscriptionChoisie != null) {
       Inscription inscription = widget.inscriptionChoisie!;
