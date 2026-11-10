@@ -39,6 +39,7 @@ class AnalyseMeteo {
       if (p.pluieMm >= 5) {
         signaler(
           NiveauMeteo.defavorable,
+          //conv int-> 1chif   ,
           'Forte pluie (${p.pluieMm.toStringAsFixed(1)} mm)',
         );
       } else {
