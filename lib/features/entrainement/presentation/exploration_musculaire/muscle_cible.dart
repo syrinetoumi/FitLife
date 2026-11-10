@@ -1,6 +1,5 @@
 import 'muscle_mapper/muscle_mapper.dart';
 
-// Nom du muscle dans ExerciseDB (À VÉRIFIER avec la réponse réelle de l'API).
 String cibleExerciseDb(MuscleGroup groupe) {
   switch (groupe) {
     case MuscleGroup.chest:

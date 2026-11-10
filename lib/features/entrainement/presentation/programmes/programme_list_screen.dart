@@ -182,7 +182,7 @@ class _ProgrammeListScreenState extends State<ProgrammeListScreen> {
     if (chargement) {
       return const Center(child: CircularProgressIndicator());
     }
-
+//recherche prog
     // Recherche par nom (sans tenir compte des majuscules).
     String texte = recherche.trim().toLowerCase();
 
