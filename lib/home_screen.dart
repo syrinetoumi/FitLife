@@ -160,8 +160,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.35),
-                            blurRadius: 6,
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
                         ],
@@ -169,8 +169,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(icone, size: 14, color: Colors.white),
-                          const SizedBox(width: 6),
+                          Icon(
+                            icone,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 5),
                           Text(
                             badgeTexte ?? 'MODULE',
                             style: const TextStyle(
@@ -188,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // 2. TEXTE ET ACTION (Fond blanc / clair)
+            // 2. CORPS TEXTE
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -200,36 +204,33 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           titre,
                           style: const TextStyle(
-                            fontSize: 17,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
                         ),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 6),
                         Text(
                           description,
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey.shade600,
-                            height: 1.25,
+                            color: Colors.grey.shade700,
+                            height: 1.35,
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 12),
-
-                  // Bouton rond avec flèche
                   Container(
-                    width: 36,
-                    height: 36,
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: couleurTheme.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.arrow_forward_ios,
-                      size: 15,
+                      size: 18,
                       color: couleurTheme,
                     ),
                   ),
@@ -242,111 +243,97 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Carte pour la gestion des utilisateurs (Visible uniquement par l'admin)
+  // Carte d'administration dédiée pour les utilisateurs
   Widget carteUtilisateursAdmin() {
-    return Card(
-      elevation: 3,
+    return Container(
       margin: const EdgeInsets.only(bottom: 20),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Colors.deepPurple.withValues(alpha: 0.25),
-          width: 1.5,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.purple.shade700,
+            Colors.deepPurple.shade900,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.deepPurple.withValues(alpha: 0.35),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const UtilisateurListScreen(),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      Colors.deepPurple,
-                      Color(0xFF7E57C2),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.deepPurple.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.people_alt,
-                  color: Colors.white,
-                  size: 28,
-                ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const UtilisateurListScreen(),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.admin_panel_settings,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
                             'Gestion des Utilisateurs',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 17,
                               fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
+                          SizedBox(width: 8),
+                          Icon(
+                            Icons.verified_user,
+                            color: Colors.amber,
+                            size: 16,
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.purple.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'ADMIN',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.purple.shade900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Activer ou désactiver les comptes des athlètes et coachs',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
+                        ],
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 4),
+                      Text(
+                        'Activer, désactiver et contrôler les rôles des comptes',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 15,
-                color: Colors.grey.shade400,
-              ),
-            ],
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -358,8 +345,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'FitLife',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          'FITLIFE',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
         ),
         actions: [
           // Raccourci vers les utilisateurs pour l'Admin
@@ -376,6 +367,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
+
+          // Raccourci vers Mon Profil
+          IconButton(
+            icon: const Icon(Icons.account_circle, color: Colors.deepPurple, size: 28),
+            tooltip: 'Mon Profil',
+            onPressed: () {
+              ouvrirModule(
+                context: context,
+                route: '/profil',
+                nomModule: 'Profil',
+              );
+            },
+          ),
 
           // Bouton switch pour basculer Admin / Athlète en 1 clic
           Padding(
@@ -479,23 +483,44 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    // Badge du profil actuel
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white30),
-                      ),
-                      child: Text(
-                        admin ? '👑 ADMIN' : '🏃 ATHLÈTE',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                    // Badge du profil actuel (cliquable vers Mon Profil)
+                    InkWell(
+                      onTap: () {
+                        ouvrirModule(
+                          context: context,
+                          route: '/profil',
+                          nomModule: 'Profil',
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white30),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              admin ? '👑 ADMIN' : '🏃 ATHLÈTE',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              size: 10,
+                              color: Colors.white70,
+                            ),
+                          ],
                         ),
                       ),
                     ),

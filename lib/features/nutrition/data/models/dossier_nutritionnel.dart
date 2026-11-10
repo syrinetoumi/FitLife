@@ -44,7 +44,17 @@ class DossierNutritionnel {
     final ecartTotal = (poidsInitial - poidsCible).abs();
     if (ecartTotal == 0) return 100.0;
 
-    final ecartRealise = (poidsInitial - poidsActuel).abs();
+    double ecartRealise;
+    if (objectif == ObjectifNutrition.PRISE_MASSE && poidsCible > poidsInitial) {
+      ecartRealise = poidsActuel - poidsInitial;
+      if (ecartRealise < 0) ecartRealise = 0.0;
+    } else if (objectif == ObjectifNutrition.PERTE_POIDS && poidsInitial > poidsCible) {
+      ecartRealise = poidsInitial - poidsActuel;
+      if (ecartRealise < 0) ecartRealise = 0.0;
+    } else {
+      ecartRealise = (poidsInitial - poidsActuel).abs();
+    }
+
     final pourcentage = (ecartRealise / ecartTotal) * 100.0;
     return pourcentage.clamp(0.0, 100.0);
   }

@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/enums_nutrition.dart';
 import '../models/programme_nutritionnel.dart';
 import '../models/repas.dart';
+import 'dossier_repository.dart';
 
 /// Repository pour la gestion des Programmes Nutritionnels et des Repas (Entités 3 & 4, Métier 2).
 class ProgrammeNutriRepository {
@@ -230,6 +231,13 @@ class ProgrammeNutriRepository {
       }
     }
 
+    if (nouveauProg.estActif) {
+      await DossierRepository().mettreAJourObjectifParDossier(
+        nouveauProg.idDossier,
+        nouveauProg.objectif,
+      );
+    }
+
     return nouveauProg;
   }
 
@@ -248,6 +256,13 @@ class ProgrammeNutriRepository {
             .update(programme.toMap())
             .eq('id', programme.idProgramme);
       } catch (_) {}
+    }
+
+    if (programme.estActif) {
+      await DossierRepository().mettreAJourObjectifParDossier(
+        programme.idDossier,
+        programme.objectif,
+      );
     }
   }
 

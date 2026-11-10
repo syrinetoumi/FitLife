@@ -79,6 +79,7 @@ class ProgrammeNutritionnel {
       'id_nutritionniste': idNutritionniste,
       'titre': titre,
       'description': description,
+      'objectif': objectif.name,
       'calories_cible': caloriesCible,
       'proteines_cible_g': proteinesCibleG,
       'glucides_cible_g': glucidesCibleG,

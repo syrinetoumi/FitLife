@@ -11,11 +11,13 @@ import '../../metier/suivi_combine_sport_nutrition.dart';
 class SuiviDashboardScreen extends StatefulWidget {
   final bool integre;
   final String idAthlete;
+  final VoidCallback? onObjectifModifie;
 
   const SuiviDashboardScreen({
     super.key,
     this.integre = false,
     this.idAthlete = 'demo-athlete-id',
+    this.onObjectifModifie,
   });
 
   @override
@@ -57,12 +59,23 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
     final progs = await _programmeRepository.getProgrammesDuDossier(d.idDossier);
     final actif = progs.isNotEmpty ? progs.firstWhere((p) => p.estActif, orElse: () => progs.first) : null;
 
+    DossierNutritionnel dossierFinal = d;
+    if (actif != null && dossierFinal.objectif != actif.objectif) {
+      dossierFinal = dossierFinal.copyWith(objectif: actif.objectif);
+      await _dossierRepository.mettreAJourObjectifParDossier(d.idDossier, actif.objectif);
+    }
+
+    if (actif?.budgetMontant != null && actif!.budgetMontant! > 0) {
+      _budgetEurController.text = actif.budgetMontant!.toStringAsFixed(0);
+    }
+
     if (mounted) {
       setState(() {
-        _dossier = d;
+        _dossier = dossierFinal;
         _programmeActif = actif;
         _chargement = false;
       });
+      _convertirBudget();
     }
   }
 
@@ -78,98 +91,121 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
     }
   }
 
-  /// Dialogue permettant de modifier à la fois le poids initial, le poids actuel et l'objectif cible
+  /// Dialogue permettant de modifier à la fois l'objectif diététique, le poids initial, le poids actuel et l'objectif cible
   Future<void> _ouvrirDialogueModificationPoids() async {
     if (_dossier == null) return;
 
     final initialCtrl = TextEditingController(text: _dossier!.poidsInitial.toString());
     final actuelCtrl = TextEditingController(text: _dossier!.poidsActuel.toString());
     final cibleCtrl = TextEditingController(text: _dossier!.poidsCible.toString());
+    ObjectifNutrition objectifSelectionne = _programmeActif?.objectif ?? _dossier!.objectif;
     final formKey = GlobalKey<FormState>();
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.monitor_weight_outlined, color: primaryBlue),
-            SizedBox(width: 8),
-            Text(
-              'Modifier le suivi du poids',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.monitor_weight_outlined, color: primaryBlue),
+              SizedBox(width: 8),
+              Text(
+                'Modifier le suivi du poids',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Ajustez vos métriques de départ, de pesée actuelle et votre objectif cible.',
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<ObjectifNutrition>(
+                    value: objectifSelectionne,
+                    decoration: const InputDecoration(
+                      labelText: 'Objectif diététique',
+                      prefixIcon: Icon(Icons.flag_outlined, color: primaryBlue),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: ObjectifNutrition.values.map((obj) => DropdownMenuItem(
+                      value: obj,
+                      child: Text(formatEnumNutrition(obj)),
+                    )).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() {
+                          objectifSelectionne = val;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: initialCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Poids initial (kg)',
+                      prefixIcon: Icon(Icons.history, color: primaryBlue),
+                      suffixText: 'kg',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (v) => double.tryParse(v ?? '') == null ? 'Valeur invalide' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: actuelCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Poids actuel (kg)',
+                      prefixIcon: Icon(Icons.scale, color: primaryBlue),
+                      suffixText: 'kg',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (v) => double.tryParse(v ?? '') == null ? 'Valeur invalide' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: cibleCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Objectif cible (kg)',
+                      prefixIcon: Icon(Icons.flag_outlined, color: primaryBlue),
+                      suffixText: 'kg',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (v) => double.tryParse(v ?? '') == null ? 'Valeur invalide' : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annuler', style: TextStyle(color: Colors.black54)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState?.validate() ?? false) {
+                  Navigator.pop(ctx, true);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryBlue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Enregistrer'),
             ),
           ],
         ),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Ajustez vos métriques de départ, de pesée actuelle et votre objectif cible.',
-                  style: TextStyle(fontSize: 13, color: Colors.black54),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: initialCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Poids initial (kg)',
-                    prefixIcon: Icon(Icons.history, color: primaryBlue),
-                    suffixText: 'kg',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) => double.tryParse(v ?? '') == null ? 'Valeur invalide' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: actuelCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Poids actuel (kg)',
-                    prefixIcon: Icon(Icons.scale, color: primaryBlue),
-                    suffixText: 'kg',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) => double.tryParse(v ?? '') == null ? 'Valeur invalide' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: cibleCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Objectif cible (kg)',
-                    prefixIcon: Icon(Icons.flag_outlined, color: primaryBlue),
-                    suffixText: 'kg',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) => double.tryParse(v ?? '') == null ? 'Valeur invalide' : null,
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Annuler', style: TextStyle(color: Colors.black54)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState?.validate() ?? false) {
-                Navigator.pop(ctx, true);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Enregistrer'),
-          ),
-        ],
       ),
     );
 
@@ -183,9 +219,18 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
         poidsInitial: pInit,
         poidsActuel: pActuel,
         poidsCible: pCible,
+        objectif: objectifSelectionne,
       );
 
+      // Si le programme actif a un objectif différent, le synchroniser
+      if (_programmeActif != null && _programmeActif!.objectif != objectifSelectionne) {
+        final progMaj = _programmeActif!.copyWith(objectif: objectifSelectionne);
+        await _programmeRepository.modifierProgramme(progMaj);
+        _programmeActif = progMaj;
+      }
+
       setState(() => _dossier = maj);
+      widget.onObjectifModifie?.call();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Objectifs et pesée mis à jour avec succès !')),
@@ -258,9 +303,16 @@ class _SuiviDashboardScreenState extends State<SuiviDashboardScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Objectif : ${formatEnumNutrition(dossier.objectif)}',
+                  'Objectif : ${formatEnumNutrition(_programmeActif?.objectif ?? dossier.objectif)}',
                   style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                 ),
+                if (_programmeActif != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Programme actif : ${_programmeActif!.titre} (${_programmeActif!.caloriesCible} kcal/j)',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13, fontStyle: FontStyle.italic),
+                  ),
+                ],
                 const SizedBox(height: 16),
 
                 // Évolution : Poids Initial -> Poids Actuel -> Objectif

@@ -9,11 +9,13 @@ import 'programme_nutri_form_screen.dart';
 class ProgrammeNutriListScreen extends StatefulWidget {
   final bool integre;
   final String idDossier;
+  final VoidCallback? onProgrammeModifie;
 
   const ProgrammeNutriListScreen({
     super.key,
     this.integre = false,
     this.idDossier = 'demo-dossier-001',
+    this.onProgrammeModifie,
   });
 
   @override
@@ -94,6 +96,7 @@ class _ProgrammeNutriListScreenState extends State<ProgrammeNutriListScreen> {
     if (conf == true) {
       await _repository.supprimerProgramme(p.idProgramme);
       _charger();
+      widget.onProgrammeModifie?.call();
     }
   }
 
@@ -155,7 +158,10 @@ class _ProgrammeNutriListScreenState extends State<ProgrammeNutriListScreen> {
                   builder: (_) => ProgrammeNutriFormScreen(idDossier: widget.idDossier),
                 ),
               );
-              if (res == true) _charger();
+              if (res == true) {
+                _charger();
+                widget.onProgrammeModifie?.call();
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryBlue,
@@ -419,7 +425,10 @@ class _ProgrammeNutriListScreenState extends State<ProgrammeNutriListScreen> {
                                 ),
                               ),
                             );
-                            if (res == true) _charger();
+                            if (res == true) {
+                              _charger();
+                              widget.onProgrammeModifie?.call();
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryBlue,
