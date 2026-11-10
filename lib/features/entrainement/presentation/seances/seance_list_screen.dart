@@ -6,6 +6,7 @@ import 'package:coach_app/features/entrainement/data/repositories/role_repositor
 import 'package:coach_app/features/entrainement/data/repositories/seance_repository.dart';
 import 'package:coach_app/features/entrainement/presentation/widgets/apparence_entrainement.dart';
 import 'package:coach_app/features/entrainement/presentation/widgets/carte_image.dart';
+import 'carte_derniere_reservation.dart';
 import 'libelles_seance.dart';
 import 'seance_detail_screen.dart';
 import 'seance_form_screen.dart';
@@ -32,6 +33,10 @@ class _SeanceListScreenState extends State<SeanceListScreen> {
   bool chargement = true;
   bool coach = false;
   String recherche = '';
+
+  // Change à chaque retour du détail : la carte "dernière réservation"
+  // se recrée alors et relit le stockage local.
+  int versionCarte = 0;
 
   @override
   void initState() {
@@ -95,6 +100,15 @@ class _SeanceListScreenState extends State<SeanceListScreen> {
         builder: (context) => SeanceDetailScreen(seance: seance),
       ),
     );
+
+    if (!mounted) {
+      return;
+    }
+
+    // Une réservation a pu être faite ou annulée dans le détail.
+    setState(() {
+      versionCarte++;
+    });
 
     chargerSeances();
   }
@@ -197,6 +211,8 @@ class _SeanceListScreenState extends State<SeanceListScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         barreRecherche(),
+        // Athlète seulement : rappel de sa dernière réservation (stockage local).
+        if (!coach) CarteDerniereReservation(key: ValueKey(versionCarte)),
         // Seul le coach crée des séances.
         if (coach) boutonCreer(),
         if (seances.isEmpty)

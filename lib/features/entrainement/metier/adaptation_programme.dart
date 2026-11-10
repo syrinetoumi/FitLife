@@ -1,6 +1,6 @@
-import '../models/suivi_objectif.dart';
-import 'calcul_progression.dart';
-import 'calcul_assiduite.dart';
+import '../data/models/suivi_objectif.dart';
+import 'package:coach_app/features/entrainement/metier/calcul_progression.dart';
+import 'package:coach_app/features/entrainement/metier/calcul_assiduite.dart';
 enum TypeProposition { prolongerDate, ajusterCible, conseil }
 
 class Proposition {

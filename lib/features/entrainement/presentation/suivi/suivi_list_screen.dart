@@ -5,7 +5,7 @@ import 'package:coach_app/features/entrainement/data/models/suivi_objectif.dart'
 import 'package:coach_app/features/entrainement/data/repositories/mesure_progression_repository.dart';
 import 'package:coach_app/features/entrainement/data/repositories/role_repository.dart';
 import 'package:coach_app/features/entrainement/data/repositories/suivi_objectif_repository.dart';
-import 'package:coach_app/features/entrainement/data/services/calcul_progression.dart';
+import 'package:coach_app/features/entrainement/metier/calcul_progression.dart';
 import 'libelles_suivi.dart';
 import 'suivi_detail_screen.dart';
 

@@ -1,4 +1,4 @@
-import '../models/assiduite.dart';
+import '../data/models/assiduite.dart';
 
 enum NiveauAssiduite { tresAssidu, moyen, faible, aucuneDonnee }
 
