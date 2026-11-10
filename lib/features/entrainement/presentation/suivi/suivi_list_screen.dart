@@ -107,6 +107,7 @@ class _SuiviListScreenState extends State<SuiviListScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      //cliquable
       child: InkWell(
         onTap: () {
           ouvrirDetail(suivi);

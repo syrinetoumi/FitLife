@@ -24,6 +24,7 @@ class ExerciseDbService {
     }
 
     // Uri.https encode les espaces (ex. "levator scapulae").
+    //uri=class pour manip les @web d'une man securisé
     Uri url = Uri.https(
       hoteExerciseDb,
       '/exercises/target/$cible',

@@ -25,7 +25,7 @@ class ExerciceApi {
     required this.categorie,
   });
 
-  // Chapitre 6 : désérialisation d'un objet JSON (Map).
+  // désérialisation d'un objet JSON (Map).
   factory ExerciceApi.fromJson(Map<String, dynamic> json) {
     return ExerciceApi(
       id: (json['id'] ?? '').toString(),
