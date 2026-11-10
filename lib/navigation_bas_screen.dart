@@ -98,22 +98,10 @@ class _NavigationBasScreenState extends State<NavigationBasScreen> {
               },
             ),
 
-          // Bouton switch pour basculer en mode Admin / Athlète en 1 clic
+          // Le badge affiche le rôle vérifié du compte connecté.
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: InkWell(
-              onTap: () {
-                setState(() {
-                  basculerModeAdmin();
-                  indexCourant = 0;
-                });
-                afficherMessage(
-                  context,
-                  estUtilisateurAdmin()
-                      ? 'Mode Administrateur activé'
-                      : 'Mode Athlète activé',
-                );
-              },
               borderRadius: BorderRadius.circular(20),
               child: Container(
                 padding:
@@ -129,7 +117,7 @@ class _NavigationBasScreenState extends State<NavigationBasScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      admin ? '👑 Admin' : '🏃 Athlète',
+                      libelleRoleUtilisateur(),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -140,7 +128,7 @@ class _NavigationBasScreenState extends State<NavigationBasScreen> {
                     ),
                     const SizedBox(width: 4),
                     Icon(
-                      Icons.swap_horiz,
+                      Icons.verified_user_outlined,
                       size: 14,
                       color:
                       admin ? Colors.purple.shade900 : Colors.blue.shade900,

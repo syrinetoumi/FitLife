@@ -357,7 +357,7 @@ void main() {
       await monter(tester, donnees);
       await tester.tap(find.byType(DropdownButton<bool>));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Démo : athlète').last);
+      await tester.tap(find.text('Athlète').last);
       await tester.pumpAndSettle();
       expect(find.text('Mes espaces'), findsNothing);
       await ouvrirAtlas(tester);
@@ -367,7 +367,7 @@ void main() {
       await tester.scrollUntilVisible(find.text('Voir l’offre').last, 180);
       await tester.tap(find.text('Voir l’offre').last);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Souscrire en démo'));
+      await tester.tap(find.text('Souscrire'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Confirmer'));
       await tester.pumpAndSettle();
