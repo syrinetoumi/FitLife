@@ -21,7 +21,6 @@ class _BodyScreenState extends State<BodyScreen> {
   AnatomyGender sexe = AnatomyGender.male;
   AnatomyView vue = AnatomyView.front;
 
-  // Style "minimal" : le seul à avoir des SVG féminins.
   final AnatomyAssetProvider fournisseur =
   const DefaultAnatomyProvider(style: AnatomyStyle.minimal);
 
