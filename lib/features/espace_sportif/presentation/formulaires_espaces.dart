@@ -7,35 +7,35 @@ String? requis(String? valeur) => valeur == null || valeur.trim().isEmpty
     : null;
 
 Widget champ(
-  String label,
-  String initial,
-  ValueChanged<String> changer, {
-  String? Function(String?)? valider,
-  int lignes = 1,
-  TextInputType? clavier,
-  String? aide,
-  bool calendrier = false,
-  bool horloge = false,
-}) => calendrier || horloge
+    String label,
+    String initial,
+    ValueChanged<String> changer, {
+      String? Function(String?)? valider,
+      int lignes = 1,
+      TextInputType? clavier,
+      String? aide,
+      bool calendrier = false,
+      bool horloge = false,
+    }) => calendrier || horloge
     ? _ChampDateHeure(
-        label: label,
-        initial: initial,
-        changer: changer,
-        valider: valider,
-        aide: aide,
-        estDate: calendrier,
-      )
+  label: label,
+  initial: initial,
+  changer: changer,
+  valider: valider,
+  aide: aide,
+  estDate: calendrier,
+)
     : TextFormField(
-        initialValue: initial,
-        onChanged: changer,
-        validator: valider,
-        maxLines: lignes,
-        keyboardType: clavier,
-        textInputAction: lignes == 1
-            ? TextInputAction.next
-            : TextInputAction.newline,
-        decoration: InputDecoration(labelText: label, helperText: aide),
-      );
+  initialValue: initial,
+  onChanged: changer,
+  validator: valider,
+  maxLines: lignes,
+  keyboardType: clavier,
+  textInputAction: lignes == 1
+      ? TextInputAction.next
+      : TextInputAction.newline,
+  decoration: InputDecoration(labelText: label, helperText: aide),
+);
 
 class _ChampDateHeure extends StatefulWidget {
   const _ChampDateHeure({
@@ -111,7 +111,7 @@ class _ChampDateHeureState extends State<_ChampDateHeure> {
       helperText: widget.aide,
       suffixIcon: IconButton(
         tooltip:
-            '${widget.estDate ? 'Choisir la date' : 'Choisir l’heure'} : ${widget.label}',
+        '${widget.estDate ? 'Choisir la date' : 'Choisir l’heure'} : ${widget.label}',
         onPressed: choisir,
         icon: Icon(
           widget.estDate ? Icons.calendar_month_outlined : Icons.schedule,
@@ -122,11 +122,11 @@ class _ChampDateHeureState extends State<_ChampDateHeure> {
 }
 
 Widget choix(
-  String label,
-  String valeur,
-  Map<String, String> options,
-  ValueChanged<String?> changer,
-) => DropdownButtonFormField<String>(
+    String label,
+    String valeur,
+    Map<String, String> options,
+    ValueChanged<String?> changer,
+    ) => DropdownButtonFormField<String>(
   initialValue: valeur,
   validator: (v) => v == null || v.isEmpty ? 'Choisissez une valeur.' : null,
   isExpanded: true,
@@ -138,11 +138,11 @@ Widget choix(
 );
 
 Future<void> ouvrirFormulaire(
-  BuildContext context,
-  String titre,
-  List<Widget> Function(StateSetter) champs,
-  VoidCallback enregistrer,
-) async {
+    BuildContext context,
+    String titre,
+    List<Widget> Function(StateSetter) champs,
+    VoidCallback enregistrer,
+    ) async {
   final cle = GlobalKey<FormState>();
   await showDialog<void>(
     context: context,
@@ -199,10 +199,10 @@ Future<void> ouvrirFormulaire(
 }
 
 Future<void> editerEspace(
-  BuildContext context,
-  DonneesApercu donnees, {
-  EspaceApercu? espace,
-}) async {
+    BuildContext context,
+    DonneesApercu donnees, {
+      EspaceApercu? espace,
+    }) async {
   var nom = espace?.nom ?? '';
   var type = espace?.type ?? '';
   var adresse = espace?.adresse ?? '';
@@ -228,7 +228,7 @@ Future<void> editerEspace(
   await ouvrirFormulaire(
     context,
     espace == null ? 'Créer un espace' : 'Modifier l’espace',
-    (modifier) => [
+        (modifier) => [
       champ('Nom *', nom, (v) => nom = v, valider: requis),
       choix('Type *', type, {
         '': 'Choisir un type',
@@ -239,31 +239,31 @@ Future<void> editerEspace(
       champ(
         'Téléphone',
         telephone,
-        (v) => telephone = v,
+            (v) => telephone = v,
         clavier: TextInputType.phone,
       ),
       champ(
         'E-mail',
         email,
-        (v) => email = v,
+            (v) => email = v,
         clavier: TextInputType.emailAddress,
         valider: (v) =>
-            v!.trim().isEmpty ||
-                RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v.trim())
+        v!.trim().isEmpty ||
+            RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v.trim())
             ? null
             : 'Adresse e-mail invalide.',
       ),
       champ(
         'Site web',
         site,
-        (v) => site = v,
+            (v) => site = v,
         clavier: TextInputType.url,
         valider: (v) {
           if (v!.trim().isEmpty) return null;
           final uri = Uri.tryParse(v.trim());
           return uri != null &&
-                  ['http', 'https'].contains(uri.scheme) &&
-                  uri.host.isNotEmpty
+              ['http', 'https'].contains(uri.scheme) &&
+              uri.host.isNotEmpty
               ? null
               : 'Utilisez une adresse http:// ou https:// valide.';
         },
@@ -271,14 +271,14 @@ Future<void> editerEspace(
       champ(
         'Latitude',
         latitude,
-        (v) => latitude = v,
+            (v) => latitude = v,
         valider: (v) => coordonnee(v, 90),
         aide: 'Facultatif. Vous pouvez enregistrer sans coordonnées.',
       ),
       champ(
         'Longitude',
         longitude,
-        (v) => longitude = v,
+            (v) => longitude = v,
         valider: (v) => coordonnee(v, 180),
       ),
       if (espace != null)
@@ -292,16 +292,16 @@ Future<void> editerEspace(
           'Votre espace sera créé inactif. Vous pourrez l’activer depuis sa fiche.',
         ),
     ],
-    () {
+        () {
       final resultat =
           espace ??
-          EspaceApercu(
-            id: donnees.prochainId(),
-            nom: '',
-            type: type,
-            adresse: '',
-            description: '',
-          );
+              EspaceApercu(
+                id: donnees.prochainId(),
+                nom: '',
+                type: type,
+                adresse: '',
+                description: '',
+              );
       resultat
         ..nom = nom.trim()
         ..type = type
@@ -320,11 +320,11 @@ Future<void> editerEspace(
 }
 
 Future<void> editerEquipement(
-  BuildContext context,
-  DonneesApercu donnees,
-  EspaceApercu espace, {
-  EquipementApercu? equipement,
-}) async {
+    BuildContext context,
+    DonneesApercu donnees,
+    EspaceApercu espace, {
+      EquipementApercu? equipement,
+    }) async {
   var nom = equipement?.nom ?? '';
   var description = equipement?.description ?? '';
   var quantite = equipement?.quantite.toString() ?? '';
@@ -332,13 +332,13 @@ Future<void> editerEquipement(
   await ouvrirFormulaire(
     context,
     equipement == null ? 'Ajouter un équipement' : 'Modifier l’équipement',
-    (modifier) => [
+        (modifier) => [
       champ('Nom *', nom, (v) => nom = v, valider: requis),
       champ('Description', description, (v) => description = v, lignes: 2),
       champ(
         'Quantité *',
         quantite,
-        (v) => quantite = v,
+            (v) => quantite = v,
         clavier: TextInputType.number,
         aide: 'Une quantité de 0 retire l’équipement des disponibilités.',
         valider: (v) => int.tryParse(v ?? '') == null || int.parse(v!) < 0
@@ -350,7 +350,7 @@ Future<void> editerEquipement(
         ...etatsEquipement,
       }, (v) => modifier(() => etat = v!)),
     ],
-    () {
+        () {
       if (equipement == null) {
         donnees.equipements.add(
           EquipementApercu(
@@ -375,34 +375,34 @@ Future<void> editerEquipement(
 }
 
 Future<void> editerHoraire(
-  BuildContext context,
-  DonneesApercu donnees,
-  EspaceApercu espace, {
-  HoraireApercu? horaire,
-}) async {
+    BuildContext context,
+    DonneesApercu donnees,
+    EspaceApercu espace, {
+      HoraireApercu? horaire,
+    }) async {
   var jour = horaire?.jour ?? 0;
   var debut = horaire == null ? '08:00' : heureTexte(horaire.debut);
   var fin = horaire == null ? '18:00' : heureTexte(horaire.fin);
   await ouvrirFormulaire(
     context,
     horaire == null ? 'Ajouter un créneau' : 'Modifier le créneau',
-    (modifier) => [
+        (modifier) => [
       choix('Jour *', '$jour', {
         for (var i = 0; i < jours.length; i++) '$i': jours[i],
       }, (v) => modifier(() => jour = int.parse(v!))),
       champ(
         'Ouverture *',
         debut,
-        (v) => debut = v,
+            (v) => debut = v,
         horloge: true,
         aide: 'Format 24 h : HH:mm',
         valider: (v) =>
-            lireHeure(v ?? '') == null ? 'Heure invalide (HH:mm).' : null,
+        lireHeure(v ?? '') == null ? 'Heure invalide (HH:mm).' : null,
       ),
       champ(
         'Fermeture *',
         fin,
-        (v) => fin = v,
+            (v) => fin = v,
         horloge: true,
         valider: (v) {
           final d = lireHeure(debut), f = lireHeure(v ?? '');
@@ -411,8 +411,8 @@ Future<void> editerHoraire(
             return 'La fermeture doit suivre l’ouverture le même jour.';
           }
           if (donnees.horaires.any(
-            (h) =>
-                h != horaire &&
+                (h) =>
+            h != horaire &&
                 h.espace == espace.id &&
                 h.jour == jour &&
                 d < h.fin &&
@@ -427,7 +427,7 @@ Future<void> editerHoraire(
         'Plusieurs créneaux par jour sont possibles. Sans créneau, l’espace est fermé.',
       ),
     ],
-    () {
+        () {
       if (horaire != null) donnees.horaires.remove(horaire);
       donnees.horaires.add(
         HoraireApercu(espace.id, jour, lireHeure(debut)!, lireHeure(fin)!),
@@ -438,11 +438,11 @@ Future<void> editerHoraire(
 }
 
 Future<void> editerOffre(
-  BuildContext context,
-  DonneesApercu donnees,
-  EspaceApercu espace, {
-  OffreApercu? offre,
-}) async {
+    BuildContext context,
+    DonneesApercu donnees,
+    EspaceApercu espace, {
+      OffreApercu? offre,
+    }) async {
   var nom = offre?.nom ?? '';
   var description = offre?.description ?? '';
   var type = offre?.type ?? 'ABONNEMENT';
@@ -454,21 +454,21 @@ Future<void> editerOffre(
   await ouvrirFormulaire(
     context,
     offre == null ? 'Créer une offre' : 'Modifier l’offre',
-    (modifier) => [
+        (modifier) => [
       champ('Nom *', nom, (v) => nom = v, valider: requis),
       champ('Description', description, (v) => description = v, lignes: 3),
       choix(
         'Type *',
         type,
         typesOffre,
-        (v) => modifier(() {
+            (v) => modifier(() {
           type = v!;
         }),
       ),
       champ(
         'Prix en TND *',
         prix,
-        (v) => prix = v,
+            (v) => prix = v,
         clavier: const TextInputType.numberWithOptions(decimal: true),
         aide: 'Jusqu’à 3 décimales. Exemple : 80,500',
         valider: (v) => lireMillimes(v ?? '') == null
@@ -478,7 +478,7 @@ Future<void> editerOffre(
       champ(
         'Durée en jours *',
         duree,
-        (v) => duree = v,
+            (v) => duree = v,
         clavier: TextInputType.number,
         valider: (v) {
           final jours = int.tryParse(v ?? '');
@@ -494,7 +494,7 @@ Future<void> editerOffre(
       champ(
         'Début des ventes *',
         debut,
-        (v) => debut = v,
+            (v) => debut = v,
         calendrier: true,
         aide: 'Format AAAA-MM-JJ',
         valider: (v) => lireDateApercu(v ?? '') == null
@@ -504,7 +504,7 @@ Future<void> editerOffre(
       champ(
         'Fin des ventes',
         fin,
-        (v) => fin = v,
+            (v) => fin = v,
         calendrier: true,
         aide: 'Facultatif. Format AAAA-MM-JJ',
         valider: (v) {
@@ -523,19 +523,19 @@ Future<void> editerOffre(
         'Les abonnements existants conservent leur prix et leurs dates. Un pack ne compte pas les visites.',
       ),
     ],
-    () {
+        () {
       final resultat =
           offre ??
-          OffreApercu(
-            id: donnees.prochainId(),
-            espace: espace.id,
-            nom: '',
-            description: '',
-            type: type,
-            millimes: 0,
-            duree: 1,
-            debut: jourLocal(),
-          );
+              OffreApercu(
+                id: donnees.prochainId(),
+                espace: espace.id,
+                nom: '',
+                description: '',
+                type: type,
+                millimes: 0,
+                duree: 1,
+                debut: jourLocal(),
+              );
       resultat
         ..nom = nom.trim()
         ..description = description.trim()

@@ -26,6 +26,14 @@ class _EvenementListScreenState extends State<EvenementListScreen> {
   EvenementRepository evenementRepository = EvenementRepository();
   TextEditingController rechercheController = TextEditingController();
 
+  // ========================================================================
+  // LE STOCKAGE EN MÉMOIRE VIVE (In-Memory Cache / RAM)
+  //
+  // La liste `evenements` stocke localement dans la mémoire vive du téléphone
+  // les objets récupérés de Supabase.
+  // Lors de la frappe dans la barre de recherche, AUCUNE requête HTTP n'est
+  // réémise : le filtrage s'opère directement dans ce cache mémoire en RAM.
+  // ========================================================================
   List<Evenement> evenements = [];
   bool chargement = true;
   String recherche = '';
@@ -189,6 +197,9 @@ class _EvenementListScreenState extends State<EvenementListScreen> {
 
     String texte = recherche.trim().toLowerCase();
 
+    //  FILTRAGE EN MÉMOIRE VIVE (RAM)
+    // On itère sur la liste stockée en mémoire `evenements` avec .where()
+    // sans jamais recharger la base de données.
     List<Evenement> visibles = evenements.where((evenement) {
       return evenement.nom.toLowerCase().contains(texte) ||
           evenement.lieu.toLowerCase().contains(texte);

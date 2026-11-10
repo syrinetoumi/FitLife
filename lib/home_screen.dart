@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:coach_app/core/utils/outils.dart';
 import 'package:coach_app/features/auth/presentation/utilisateur_list_screen.dart';
+import 'package:coach_app/features/espace_sportif/presentation/espaces_sportifs_screen.dart';
 import 'package:coach_app/navigation_bas_screen.dart';
 
 // Écran d'accueil principal (HomeScreen)
@@ -575,7 +576,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
 
-          // GESTION 3 : NOS ESPACES SPORTIFS (photo espaces sportif.jpg)
+          // GESTION 3 : NOS ESPACES SPORTIFS (photo espaces sportif.jpg) -> Accède directement à EspacesSportifsScreen !
           carteModulePhoto(
             context: context,
             titre: 'Nos Espaces Sportifs',
@@ -590,6 +591,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ouvrirModule(
                 context: context,
                 route: '/espaces',
+                ecranDirect: const EspacesSportifsScreen(),
                 nomModule: 'Espaces Sportifs',
               );
             },

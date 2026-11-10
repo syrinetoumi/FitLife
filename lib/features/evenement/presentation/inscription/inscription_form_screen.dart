@@ -45,11 +45,11 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
   String idEvenement = '';
   String idCategorie = '';
 
-  // MÉTIER 1 : informations de l'athlète à vérifier.
+  // METIER 1 : informations de l'athlète à vérifier.
   String ageTexte = '';
   NiveauCategorie niveauAthlete = NiveauCategorie.debutant;
 
-  // MÉTIER 1 : places encore disponibles pour l'événement choisi
+  // METIER 1 : places encore disponibles pour l'événement choisi
   // (-1 = pas encore calculé).
   int placesRestantes = -1;
 
@@ -136,7 +136,7 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     }
   }
 
-  // MÉTIER 1 : compter les places restantes de l'événement choisi.
+  // METIER 1 : compter les places restantes de l'événement choisi.
   Future<void> compterPlaces(Evenement evenement) async {
     try {
       List<Inscription> liste =
@@ -159,7 +159,7 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     }
   }
 
-  // MÉTIER 3 : retrouver l'inscription fraîchement créée dans une
+  // METIER 3 : retrouver l'inscription fraîchement créée dans une
   // liste, pour connaître son id généré par Supabase
   // (le paiement en a besoin : relation inscription → paiement).
   Inscription? retrouverInscriptionCreee(
@@ -215,7 +215,7 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     }
 
     // ================================================================
-    // MÉTIER 1 — INSCRIPTION INTELLIGENTE
+    // METIER 1 — INSCRIPTION INTELLIGENTE
     // Les règles viennent de domain/eligibilite_checker.dart.
     // ================================================================
 
@@ -304,17 +304,17 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
         await inscriptionRepository.ajouter(inscription);
 
         // ========================================================
-        // MÉTIERS 3 et 4 : on relit les inscriptions de
+        // METIER 3 et 4 : on relit les inscriptions de
         // l'événement (les deux en ont besoin).
         // ========================================================
         List<Inscription> liste = await inscriptionRepository
             .getInscriptionsByEvenement(idEvenement);
 
         // --------------------------------------------------------
-        // MÉTIER 4 — GESTION DE CAPACITÉ
+        // METIER 4 — GESTION DE CAPACITÉ
         // Le nombre maximal de participants est atteint :
         // l'événement passe automatiquement à COMPLET et la
-        // vérification 1 du Métier 1 bloquera les nouvelles
+        // vérification 1 du MEtier 1 bloquera les nouvelles
         // inscriptions.
         // --------------------------------------------------------
         if (capaciteAtteinte(evenement, liste)) {
@@ -345,7 +345,7 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
         }
 
         // --------------------------------------------------------
-        // MÉTIER 3 : si l'athlète choisit "CONFIRMEE", redirection directe vers le PAIEMENT.
+        // METIER 3 : si l'athlète choisit "CONFIRMEE", redirection directe vers le PAIEMENT.
         // Si "EN_ATTENTE", l'inscription est au panier sans paiement immédiat.
         // --------------------------------------------------------
         if (statut == StatutInscription.confirmee) {
@@ -458,7 +458,7 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     );
   }
 
-  // MÉTIER 1 : affiche les places restantes de l'événement choisi.
+  // METIER 1 : affiche les places restantes de l'événement choisi.
   Widget cartePlaces() {
     if (idEvenement.isEmpty || placesRestantes < 0) {
       return Container();
@@ -490,7 +490,7 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
   }
 
   // ================================================================
-  // MÉTIER 2 — VÉRIFICATION AUTOMATIQUE DE L'ÉLIGIBILITÉ
+  // METIER 2 — VÉRIFICATION AUTOMATIQUE DE L'ÉLIGIBILITÉ
   // La catégorie de l'événement (unique) est présélectionnée et
   // affiche EN DIRECT "Éligible" (vert) ou la raison du refus
   // (rouge), grâce à domain/eligibilite_checker.dart.
@@ -512,7 +512,7 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     Categorie categorie = categories.first;
     bool choisie = idCategorie == categorie.idCategorie;
 
-    // MÉTIER 2 : calcul automatique pour la catégorie de l'événement.
+    // METIER 2 : calcul automatique pour la catégorie de l'événement.
     bool eligible = false;
     if (ageSaisi != null) {
       eligible = categorieEligible(categorie, ageSaisi, niveauAthlete);
@@ -531,7 +531,7 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
             Text('Âge : ${categorie.ageMin} - ${categorie.ageMax}'),
             Text('Niveau : ${categorie.niveau.name.toUpperCase()}'),
 
-            // MÉTIER 2 : verdict automatique en direct.
+            // METIER 2 : verdict automatique en direct.
             if (ageSaisi != null)
               Text(
                 eligible ? '✅ Éligible'
@@ -553,7 +553,7 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     );
   }
 
-  // MÉTIER 1 : choix du niveau de l'athlète.
+  // METIER 1 : choix du niveau de l'athlète.
   // Même GridView.builder que choixStatut() (Chapitre 4).
   Widget choixNiveauAthlete() {
     return GridView.builder(
@@ -657,7 +657,7 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
                 decoration:
                 const InputDecoration(labelText: 'Âge de l’athlète'),
                 onChanged: (value) {
-                  // MÉTIER 2 : setState pour redessiner la carte
+                  // METIER 2 : setState pour redessiner la carte
                   // catégorie à chaque touche (verdict en direct).
                   setState(() {
                     ageTexte = value;

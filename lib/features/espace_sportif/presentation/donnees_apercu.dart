@@ -25,13 +25,13 @@ class EspaceApercu {
 
 class EquipementApercu {
   EquipementApercu(
-    this.id,
-    this.espace,
-    this.nom,
-    this.description,
-    this.quantite,
-    this.etat,
-  );
+      this.id,
+      this.espace,
+      this.nom,
+      this.description,
+      this.quantite,
+      this.etat,
+      );
   final int id, espace;
   String nom, description, etat;
   int quantite;
@@ -284,8 +284,8 @@ class DonneesApercu extends ChangeNotifier {
   OffreApercu offreDe(AbonnementApercu abonnement) =>
       offres.firstWhere((o) => o.id == abonnement.offre);
   bool dejaAbonne(OffreApercu offre) => abonnements.any(
-    (a) =>
-        a.estPersonnel &&
+        (a) =>
+    a.estPersonnel &&
         a.offre == offre.id &&
         ['ACTIF', 'SUSPENDU'].contains(a.statutEffectif),
   );

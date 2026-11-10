@@ -108,10 +108,10 @@ class _EspacesSportifsScreenState extends State<EspacesSportifsScreen> {
                       destinations: destinations
                           .map(
                             (d) => NavigationRailDestination(
-                              icon: d.icon,
-                              label: Text(d.label),
-                            ),
-                          )
+                          icon: d.icon,
+                          label: Text(d.label),
+                        ),
+                      )
                           .toList(),
                     ),
                   if (large) const VerticalDivider(width: 1),
@@ -136,10 +136,10 @@ class _EspacesSportifsScreenState extends State<EspacesSportifsScreen> {
         bottomNavigationBar: large
             ? null
             : NavigationBar(
-                selectedIndex: page,
-                onDestinationSelected: (v) => setState(() => page = v),
-                destinations: destinations,
-              ),
+          selectedIndex: page,
+          onDestinationSelected: (v) => setState(() => page = v),
+          destinations: destinations,
+        ),
       );
     },
   );
@@ -197,10 +197,10 @@ class _EspacesSportifsScreenState extends State<EspacesSportifsScreen> {
           mesEspaces ? 'MES ESPACES' : 'EXPLORER LES ESPACES',
           action: mesEspaces
               ? FilledButton.icon(
-                  onPressed: () => editerEspace(context, donnees),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Créer un espace'),
-                )
+            onPressed: () => editerEspace(context, donnees),
+            icon: const Icon(Icons.add),
+            label: const Text('Créer un espace'),
+          )
               : null,
         ),
         const SizedBox(height: 16),
@@ -362,9 +362,9 @@ class _EspacesSportifsScreenState extends State<EspacesSportifsScreen> {
     final liste = donnees.abonnements
         .where(
           (a) => gestionnaire
-              ? donnees.espaceDe(donnees.offreDe(a)).estGere
-              : a.estPersonnel,
-        )
+          ? donnees.espaceDe(donnees.offreDe(a)).estGere
+          : a.estPersonnel,
+    )
         .toList();
     return ListView(
       padding: const EdgeInsets.all(24),
@@ -585,10 +585,10 @@ class _DetailEspaceState extends State<_DetailEspace> {
           'ÉQUIPEMENTS',
           action: gerer
               ? FilledButton.icon(
-                  onPressed: () => editerEquipement(context, donnees, espace),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Ajouter'),
-                )
+            onPressed: () => editerEquipement(context, donnees, espace),
+            icon: const Icon(Icons.add),
+            label: const Text('Ajouter'),
+          )
               : null,
         ),
         const SizedBox(height: 12),
@@ -655,10 +655,10 @@ class _DetailEspaceState extends State<_DetailEspace> {
         'HORAIRES HEBDOMADAIRES',
         action: gerer
             ? FilledButton.icon(
-                onPressed: () => editerHoraire(context, donnees, espace),
-                icon: const Icon(Icons.add),
-                label: const Text('Ajouter'),
-              )
+          onPressed: () => editerHoraire(context, donnees, espace),
+          icon: const Icon(Icons.add),
+          label: const Text('Ajouter'),
+        )
             : null,
       ),
       const SizedBox(height: 12),
@@ -679,10 +679,10 @@ class _DetailEspaceState extends State<_DetailEspace> {
 
   Widget _ligneJour(int jour) {
     final liste =
-        donnees.horaires
-            .where((h) => h.espace == espace.id && h.jour == jour)
-            .toList()
-          ..sort((a, b) => a.debut.compareTo(b.debut));
+    donnees.horaires
+        .where((h) => h.espace == espace.id && h.jour == jour)
+        .toList()
+      ..sort((a, b) => a.debut.compareTo(b.debut));
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -747,10 +747,10 @@ class _DetailEspaceState extends State<_DetailEspace> {
           'OFFRES ET ACCÈS',
           action: gerer
               ? FilledButton.icon(
-                  onPressed: () => editerOffre(context, donnees, espace),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Créer une offre'),
-                )
+            onPressed: () => editerOffre(context, donnees, espace),
+            icon: const Icon(Icons.add),
+            label: const Text('Créer une offre'),
+          )
               : null,
         ),
         const SizedBox(height: 12),
@@ -802,7 +802,7 @@ class _DetailEspaceState extends State<_DetailEspace> {
                         ),
                         TextSpan(
                           text:
-                              ' / ${offre.duree} jour${offre.duree > 1 ? 's' : ''}',
+                          ' / ${offre.duree} jour${offre.duree > 1 ? 's' : ''}',
                         ),
                       ],
                     ),
@@ -951,7 +951,7 @@ Widget _badge(String statut) {
         'ANNULE': 'Annulé',
         ...etatsEquipement,
       }[statut] ??
-      statut;
+          statut;
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
     decoration: BoxDecoration(
@@ -1015,14 +1015,14 @@ Widget _info(IconData icone, String titre, String valeur) => Padding(
 
 String _coordonnees(EspaceApercu espace) =>
     espace.latitude == null || espace.longitude == null
-    ? 'Coordonnées non renseignées · Recherche par adresse disponible.'
-    : 'Latitude ${espace.latitude!.toStringAsFixed(5)} · Longitude ${espace.longitude!.toStringAsFixed(5)}';
+        ? 'Coordonnées non renseignées · Recherche par adresse disponible.'
+        : 'Latitude ${espace.latitude!.toStringAsFixed(5)} · Longitude ${espace.longitude!.toStringAsFixed(5)}';
 
 Future<bool> _confirmer(
-  BuildContext context,
-  String titre,
-  String texte,
-) async =>
+    BuildContext context,
+    String titre,
+    String texte,
+    ) async =>
     await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -1040,15 +1040,15 @@ Future<bool> _confirmer(
         ],
       ),
     ) ??
-    false;
+        false;
 
 void _detailOffre(
-  BuildContext context,
-  DonneesApercu donnees,
-  OffreApercu offre,
-  bool gerer,
-  bool athlete,
-) {
+    BuildContext context,
+    DonneesApercu donnees,
+    OffreApercu offre,
+    bool gerer,
+    bool athlete,
+    ) {
   final parentContext = context;
   final espace = donnees.espaceDe(offre);
   showDialog<void>(
@@ -1119,20 +1119,20 @@ void _detailOffre(
           if (athlete)
             FilledButton(
               onPressed:
-                  !offre.disponible ||
-                      espace.statut != 'ACTIF' ||
-                      donnees.dejaAbonne(offre)
+              !offre.disponible ||
+                  espace.statut != 'ACTIF' ||
+                  donnees.dejaAbonne(offre)
                   ? null
                   : () async {
-                      final confirmer = await _confirmer(
-                        context,
-                        'Confirmer la souscription ?',
-                        '${offre.nom} · ${montantTexte(offre.millimes)} TND pour ${offre.duree} jours. Cette action utilise uniquement les données de démonstration.',
-                      );
-                      if (!confirmer || !c.mounted) return;
-                      donnees.souscrire(offre);
-                      Navigator.pop(c);
-                    },
+                final confirmer = await _confirmer(
+                  context,
+                  'Confirmer la souscription ?',
+                  '${offre.nom} · ${montantTexte(offre.millimes)} TND pour ${offre.duree} jours. Cette action utilise uniquement les données de démonstration.',
+                );
+                if (!confirmer || !c.mounted) return;
+                donnees.souscrire(offre);
+                Navigator.pop(c);
+              },
               child: const Text('Souscrire en démo'),
             ),
         ],
@@ -1142,11 +1142,11 @@ void _detailOffre(
 }
 
 Widget _carteAbonnement(
-  BuildContext context,
-  DonneesApercu donnees,
-  AbonnementApercu abonnement,
-  bool gerer,
-) {
+    BuildContext context,
+    DonneesApercu donnees,
+    AbonnementApercu abonnement,
+    bool gerer,
+    ) {
   final offre = donnees.offreDe(abonnement);
   final espace = donnees.espaceDe(offre);
   return Card(
@@ -1197,11 +1197,11 @@ Widget _carteAbonnement(
 }
 
 void _detailAbonnement(
-  BuildContext context,
-  DonneesApercu donnees,
-  AbonnementApercu a,
-  bool gerer,
-) {
+    BuildContext context,
+    DonneesApercu donnees,
+    AbonnementApercu a,
+    bool gerer,
+    ) {
   final offre = donnees.offreDe(a);
   showDialog<void>(
     context: context,
@@ -1282,10 +1282,10 @@ void _detailAbonnement(
 }
 
 void _verifierDisponibilite(
-  BuildContext context,
-  DonneesApercu donnees,
-  EspaceApercu espace,
-) {
+    BuildContext context,
+    DonneesApercu donnees,
+    EspaceApercu espace,
+    ) {
   var date = dateSaisie(jourLocal()), debut = '09:00', fin = '10:00';
   final exigences = <int, String>{};
   List<String>? raisons;
@@ -1311,7 +1311,7 @@ void _verifierDisponibilite(
                   champ(
                     'Date *',
                     date,
-                    (v) {
+                        (v) {
                       date = v;
                       modifier(() => raisons = null);
                     },
@@ -1325,29 +1325,29 @@ void _verifierDisponibilite(
                   champ(
                     'Début *',
                     debut,
-                    (v) {
+                        (v) {
                       debut = v;
                       modifier(() => raisons = null);
                     },
                     horloge: true,
                     aide: 'HH:mm',
                     valider: (v) =>
-                        lireHeure(v ?? '') == null ? 'Heure invalide.' : null,
+                    lireHeure(v ?? '') == null ? 'Heure invalide.' : null,
                   ),
                   const SizedBox(height: 16),
                   champ(
                     'Fin *',
                     fin,
-                    (v) {
+                        (v) {
                       fin = v;
                       modifier(() => raisons = null);
                     },
                     horloge: true,
                     aide: 'HH:mm',
                     valider: (v) =>
-                        lireHeure(v ?? '') == null ||
-                            lireHeure(debut) == null ||
-                            lireHeure(v!)! <= lireHeure(debut)!
+                    lireHeure(v ?? '') == null ||
+                        lireHeure(debut) == null ||
+                        lireHeure(v!)! <= lireHeure(debut)!
                         ? 'La fin doit suivre le début le même jour.'
                         : null,
                   ),
@@ -1360,7 +1360,7 @@ void _verifierDisponibilite(
                     'Aucune sélection signifie explicitement : aucun équipement requis.',
                   ),
                   for (final e in donnees.equipements.where(
-                    (e) => e.espace == espace.id,
+                        (e) => e.espace == espace.id,
                   )) ...[
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
@@ -1391,7 +1391,7 @@ void _verifierDisponibilite(
                           modifier(() => raisons = null);
                         },
                         validator: (v) =>
-                            int.tryParse(v ?? '') == null || int.parse(v!) < 1
+                        int.tryParse(v ?? '') == null || int.parse(v!) < 1
                             ? 'Saisissez un entier supérieur à 0.'
                             : null,
                       ),
@@ -1430,8 +1430,8 @@ void _verifierDisponibilite(
                 resultat.add('L’espace n’est pas actif.');
               }
               if (!donnees.horaires.any(
-                (h) =>
-                    h.espace == espace.id &&
+                    (h) =>
+                h.espace == espace.id &&
                     h.jour == jour &&
                     d >= h.debut &&
                     f <= h.fin,
@@ -1442,7 +1442,7 @@ void _verifierDisponibilite(
               }
               for (final exigence in exigences.entries) {
                 final e = donnees.equipements.firstWhere(
-                  (e) => e.id == exigence.key,
+                      (e) => e.id == exigence.key,
                 );
                 if (e.etat != 'BON' || e.quantite < int.parse(exigence.value)) {
                   resultat.add('${e.nom} : état ou quantité incompatible.');

@@ -70,6 +70,7 @@ flutter:
   assets:
     - assets/anatomy/minimal/
     - assets/images/
+    - assets/images/programmes/
     - assets/images/seances/
     - assets/images/evenement/
     - assets/images/Home/

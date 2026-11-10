@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// Le paquet est déjà résolu dans le verrou existant. Ne pas modifier les dépendances partagées ici.
-// ignore: depend_on_referenced_packages
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
@@ -9,8 +7,8 @@ import 'donnees_apercu.dart';
 
 String destinationEspace(EspaceApercu espace) =>
     espace.latitude != null && espace.longitude != null
-    ? '${espace.latitude},${espace.longitude}'
-    : espace.adresse;
+        ? '${espace.latitude},${espace.longitude}'
+        : espace.adresse;
 
 Uri lienCarte(EspaceApercu espace) => Uri.https(
   'www.google.com',
@@ -19,10 +17,10 @@ Uri lienCarte(EspaceApercu espace) => Uri.https(
 );
 
 Uri lienItineraire(
-  EspaceApercu espace, {
-  String depart = '',
-  String mode = 'walking',
-}) => Uri.https('www.google.com', '/maps/dir/', {
+    EspaceApercu espace, {
+      String depart = '',
+      String mode = 'walking',
+    }) => Uri.https('www.google.com', '/maps/dir/', {
   'api': '1',
   'destination': destinationEspace(espace),
   if (depart.trim().isNotEmpty) 'origin': depart.trim(),
@@ -160,7 +158,7 @@ void _itineraire(BuildContext context, EspaceApercu espace) {
                     maxLength: 250,
                     onChanged: (v) => depart = v,
                     validator: (v) =>
-                        v != null && v.isNotEmpty && v.trim().isEmpty
+                    v != null && v.isNotEmpty && v.trim().isEmpty
                         ? 'Renseignez une adresse ou laissez ce champ vide.'
                         : null,
                   ),
