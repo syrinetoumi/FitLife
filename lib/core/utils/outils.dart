@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:coach_app/features/auth/presentation/utilisateur_list_screen.dart';
+import 'package:coach_app/features/espace_sportif/presentation/espaces_sportifs_screen.dart';
 
 // Afficher un message en bas de l'écran.
 void afficherMessage(BuildContext context, String texte) {
@@ -115,11 +116,11 @@ bool estUtilisateurAdmin() {
 
 // Élément cliquable du Drawer.
 Widget elementMenu(
-    BuildContext context,
-    String titre,
-    IconData icone,
-    String route,
-    ) {
+  BuildContext context,
+  String titre,
+  IconData icone,
+  String route,
+) {
   return InkWell(
     onTap: () {
       Navigator.pop(context);
@@ -135,10 +136,26 @@ Widget elementMenu(
         return;
       }
 
-      Navigator.pushReplacementNamed(
-        context,
-        route,
-      );
+      // Si clic sur Espaces Sportifs, navigation directe garantie
+      if (route == '/espaces') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const EspacesSportifsScreen(),
+          ),
+        );
+        return;
+      }
+
+      // Pour toutes les autres gestions, navigation par route nommée sécurisée
+      try {
+        Navigator.pushNamed(context, route);
+      } catch (_) {
+        afficherMessage(
+          context,
+          'Route $route non déclarée dans main.dart',
+        );
+      }
     },
     child: Container(
       padding: const EdgeInsets.all(14),
@@ -212,14 +229,14 @@ Widget construireDrawer(BuildContext context) {
           ),
         ),
 
-        // BLOC GESTION
+        // 1. BLOC ÉVÉNEMENTS
         Container(
           margin: const EdgeInsets.only(
             top: 20,
             bottom: 8,
           ),
           child: const Text(
-            'GESTION',
+            'ÉVÉNEMENTS',
             style: TextStyle(
               fontSize: 14,
               color: Colors.deepPurple,
@@ -227,29 +244,40 @@ Widget construireDrawer(BuildContext context) {
             ),
           ),
         ),
-
         Card(
-          child: Column(
-            children: [
-              elementMenu(
-                context,
-                'Événements',
-                Icons.event,
-                '/bas',
-              ),
-              // Gestion des comptes : visible UNIQUEMENT pour l'Admin
-              if (estUtilisateurAdmin())
-                elementMenu(
-                  context,
-                  'Utilisateurs',
-                  Icons.people,
-                  '/utilisateurs',
-                ),
-            ],
+          child: elementMenu(
+            context,
+            'Événements',
+            Icons.event,
+            '/bas',
           ),
         ),
 
-        // BLOC ENTRAÎNEMENT
+        // 2. BLOC ESPACES SPORTIFS
+        Container(
+          margin: const EdgeInsets.only(
+            top: 20,
+            bottom: 8,
+          ),
+          child: const Text(
+            'ESPACES SPORTIFS',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.deepPurple,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        Card(
+          child: elementMenu(
+            context,
+            'Espaces Sportifs',
+            Icons.stadium,
+            '/espaces',
+          ),
+        ),
+
+        // 3. BLOC ENTRAÎNEMENT
         Container(
           margin: const EdgeInsets.only(
             top: 20,
@@ -264,21 +292,16 @@ Widget construireDrawer(BuildContext context) {
             ),
           ),
         ),
-
         Card(
-          child: Column(
-            children: [
-              elementMenu(
-                context,
-                'Entraînement',
-                Icons.fitness_center,
-                '/entrainement',
-              ),
-            ],
+          child: elementMenu(
+            context,
+            'Entraînement',
+            Icons.fitness_center,
+            '/entrainement',
           ),
         ),
 
-        // BLOC NUTRITION
+        // 4. BLOC NUTRITION
         Container(
           margin: const EdgeInsets.only(
             top: 20,
@@ -289,24 +312,46 @@ Widget construireDrawer(BuildContext context) {
             style: TextStyle(
               fontSize: 14,
               color: Colors.deepPurple,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
-
         Card(
-          child: Column(
-            children: [
-              elementMenu(
-                context,
-                'Nutrition',
-                Icons.restaurant_menu,
-                '/nutrition',
-              ),
-            ],
+          child: elementMenu(
+            context,
+            'Nutrition',
+            Icons.restaurant_menu,
+            '/nutrition',
           ),
         ),
 
-        // BLOC NAVIGATION
+        // 5. BLOC ADMINISTRATION (Visible uniquement pour l'Admin)
+        if (estUtilisateurAdmin()) ...[
+          Container(
+            margin: const EdgeInsets.only(
+              top: 20,
+              bottom: 8,
+            ),
+            child: const Text(
+              'ADMINISTRATION',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.deepPurple,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Card(
+            child: elementMenu(
+              context,
+              'Utilisateurs',
+              Icons.people,
+              '/utilisateurs',
+            ),
+          ),
+        ],
+
+        // 6. BLOC NAVIGATION
         Container(
           margin: const EdgeInsets.only(
             top: 20,
@@ -321,7 +366,6 @@ Widget construireDrawer(BuildContext context) {
             ),
           ),
         ),
-
         Card(
           child: Column(
             children: [
@@ -341,10 +385,22 @@ Widget construireDrawer(BuildContext context) {
           ),
         ),
 
-        // SE DÉCONNECTER (carte séparée)
+        // 7. MON PROFIL (carte séparée)
         Container(
-          margin: const EdgeInsets.only(top: 20),
+          margin: const EdgeInsets.only(top: 15),
+          child: Card(
+            child: elementMenu(
+              context,
+              'Mon Profil',
+              Icons.person,
+              '/profil',
+            ),
+          ),
+        ),
 
+        // 8. DÉCONNEXION (carte séparée)
+        Container(
+          margin: const EdgeInsets.only(top: 10),
           child: Card(
             child: InkWell(
               onTap: () async {

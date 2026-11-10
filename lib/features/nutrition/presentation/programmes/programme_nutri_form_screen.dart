@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/models/enums_nutrition.dart';
 import '../../data/models/programme_nutritionnel.dart';
 import '../../data/models/repas.dart';
+import '../../data/repositories/dossier_repository.dart';
 import '../../data/repositories/programme_nutri_repository.dart';
 import '../../metier/nutrition_calculator.dart';
 import 'repas_form_screen.dart';
@@ -135,6 +136,12 @@ class _ProgrammeNutriFormScreenState extends State<ProgrammeNutriFormScreen> {
       } else {
         await _repository.modifierProgramme(prog);
       }
+
+      // Synchronisation directe et garantie avec le dossier nutritionnel
+      await DossierRepository().mettreAJourObjectifParDossier(
+        widget.idDossier,
+        prog.objectif,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

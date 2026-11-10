@@ -105,16 +105,60 @@ class DossierRepository {
     required double poidsInitial,
     required double poidsActuel,
     required double poidsCible,
+    ObjectifNutrition? objectif,
   }) async {
     final existant = await getDossier(idAthlete);
     final maj = existant.copyWith(
       poidsInitial: poidsInitial,
       poidsActuel: poidsActuel,
       poidsCible: poidsCible,
+      objectif: objectif ?? existant.objectif,
       dateMiseAJour: DateTime.now(),
     );
 
     await enregistrerDossier(maj);
     return maj;
+  }
+
+  /// Met à jour l'objectif du dossier (et adapte le poids cible si nécessaire)
+  Future<void> mettreAJourObjectifParDossier(
+    String idDossier,
+    ObjectifNutrition nouvelObjectif, {
+    double? nouveauPoidsCible,
+  }) async {
+    final client = _client;
+    if (client != null) {
+      try {
+        final data = <String, dynamic>{
+          'objectif': nouvelObjectif.name,
+          'date_mise_a_jour': DateTime.now().toUtc().toIso8601String(),
+        };
+        if (nouveauPoidsCible != null) {
+          data['poids_cible'] = nouveauPoidsCible;
+        }
+        await client.from('dossier_nutritionnel').update(data).eq('id', idDossier);
+      } catch (_) {}
+    }
+
+    for (final key in _dossiersLocaux.keys) {
+      final dossier = _dossiersLocaux[key]!;
+      if (dossier.idDossier == idDossier) {
+        double cible = nouveauPoidsCible ?? dossier.poidsCible;
+        if (nouveauPoidsCible == null) {
+          if (nouvelObjectif == ObjectifNutrition.PRISE_MASSE && cible <= dossier.poidsActuel) {
+            cible = dossier.poidsActuel + 4.0;
+          } else if (nouvelObjectif == ObjectifNutrition.PERTE_POIDS && cible >= dossier.poidsActuel) {
+            cible = (dossier.poidsActuel - 4.0).clamp(30.0, 300.0);
+          }
+        }
+
+        _dossiersLocaux[key] = dossier.copyWith(
+          objectif: nouvelObjectif,
+          poidsCible: cible,
+          dateMiseAJour: DateTime.now(),
+        );
+        break;
+      }
+    }
   }
 }

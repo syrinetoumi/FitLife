@@ -37,6 +37,8 @@ class SuiviCombineSportNutrition {
     ProgrammeNutritionnel? programmeActif,
     String? entrainementResume,
   }) {
+    // L'objectif effectif priorise celui du programme actif en cours s'il existe
+    final objectifEffectif = programmeActif?.objectif ?? dossier.objectif;
     final progPct = dossier.progressionPourcentage;
     final deltaKg = dossier.poidsRestantKg;
 
@@ -45,7 +47,7 @@ class SuiviCombineSportNutrition {
     String coordination;
     String conseil;
 
-    switch (dossier.objectif) {
+    switch (objectifEffectif) {
       case ObjectifNutrition.PERTE_POIDS:
         coachAction = entrainementResume ?? 'Programme Cardio HIIT + Musculation métabolique';
         nutriAction = programmeActif != null
@@ -58,7 +60,7 @@ class SuiviCombineSportNutrition {
       case ObjectifNutrition.PRISE_MASSE:
         coachAction = entrainementResume ?? 'Musculation en surcharge progressive (Hypertrophie)';
         nutriAction = programmeActif != null
-            ? 'Plan alimentaire : ${programmeActif.caloriesCible} kcal/j avec surplus calorique'
+            ? 'Plan alimentaire : ${programmeActif.caloriesCible} kcal/j avec surplus calorique (${programmeActif.proteinesCibleG}g protéines)'
             : 'Surplus calorique & synthèse protéique';
         coordination = 'Synergie anabolique';
         conseil = 'L\'entraînement stimule la croissance musculaire et l\'apport nutritionnel fournit les briques de construction.';
@@ -84,7 +86,7 @@ class SuiviCombineSportNutrition {
     }
 
     return BilanSuiviCombine(
-      objectifTitre: 'Objectif : ${formatEnumNutrition(dossier.objectif)} (${deltaKg.toStringAsFixed(1)} kg)',
+      objectifTitre: 'Objectif : ${formatEnumNutrition(objectifEffectif)} (${deltaKg.toStringAsFixed(1)} kg)',
       progressionPourcentage: progPct,
       poidsInitialKg: dossier.poidsInitial,
       poidsActuelKg: dossier.poidsActuel,
