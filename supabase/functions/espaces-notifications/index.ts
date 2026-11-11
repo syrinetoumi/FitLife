@@ -8,16 +8,20 @@ Deno.serve(async (req) => {
   if (!secret || req.headers.get("x-worker-secret") !== secret) {
     return reponse({ erreur: "Accès refusé." }, 401);
   }
-  if (Deno.env.get("BREVO_SENDING_ENABLED") !== "true") {
+  if (Deno.env.get("EMAIL_SENDING_ENABLED") !== "true") {
     return reponse({ erreur: "Envoi des e-mails désactivé." }, 503);
   }
   const url = Deno.env.get("SUPABASE_URL");
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const cle = Deno.env.get("BREVO_API_KEY");
-  const emailExpediteur = Deno.env.get("BREVO_SENDER_EMAIL");
-  const nomExpediteur = Deno.env.get("BREVO_SENDER_NAME") || "FitLife";
+  const cle = Deno.env.get("RESEND_API_KEY");
+  const emailExpediteur = Deno.env.get("RESEND_SENDER_EMAIL");
+  const nomExpediteur = Deno.env.get("RESEND_SENDER_NAME") || "FitLife";
+  const destinataireAutorise = Deno.env.get("RESEND_ALLOWED_RECIPIENT")?.trim().toLowerCase();
   if (!url || !service || !cle || !emailExpediteur) {
     return reponse({ erreur: "Configuration des notifications incomplète." }, 503);
+  }
+  if (emailExpediteur.endsWith("@resend.dev") && !destinataireAutorise) {
+    return reponse({ erreur: "Destinataire de démonstration non configuré." }, 503);
   }
   const client = createClient(url, service, { auth: { persistSession: false } });
   try {
@@ -36,6 +40,9 @@ Deno.serve(async (req) => {
         if (!notification) {
           etat = "IGNOREE";
           code = "INVALIDE";
+        } else if (destinataireAutorise && notification.email.trim().toLowerCase() !== destinataireAutorise) {
+          etat = "IGNOREE";
+          code = "DESTINATAIRE_RESTREINT";
         } else {
           const confirmation = notification.nature === "CONFIRMATION";
           const texte = confirmation
@@ -50,32 +57,34 @@ Deno.serve(async (req) => {
             `Montant à la souscription : ${notification.montant} TND`,
             "Consultez votre abonnement dans l’application FitLife.",
           ].join("\n\n");
-          const resultat = await fetch("https://api.brevo.com/v3/smtp/email", {
+          const resultat = await fetch("https://api.resend.com/emails", {
             method: "POST",
-            headers: { "api-key": cle, "Content-Type": "application/json", "Accept": "application/json" },
+            headers: {
+              "Authorization": `Bearer ${cle}`, "Content-Type": "application/json",
+              "Idempotency-Key": notification.id,
+            },
             signal: AbortSignal.timeout(10000),
             body: JSON.stringify({
-              sender: { email: emailExpediteur, name: nomExpediteur },
-              to: [{ email: notification.email }],
+              from: `${nomExpediteur} <${emailExpediteur}>`,
+              to: [notification.email],
               subject: confirmation ? "FitLife — Souscription confirmée" : "FitLife — Votre abonnement expire bientôt",
-              textContent: contenu,
-              headers: { idempotencyKey: notification.id },
-              tags: ["espaces-sportifs", confirmation ? "confirmation" : "expiration"],
+              text: contenu,
+              tags: [{ name: "module", value: "espaces-sportifs" }, { name: "nature", value: confirmation ? "confirmation" : "expiration" }],
             }),
           });
           code = `HTTP_${resultat.status}`;
           const corps = await resultat.json().catch(() => null);
           if (resultat.ok) {
-            if (typeof corps?.messageId === "string" && corps.messageId.length > 0) {
+            if (typeof corps?.id === "string" && corps.id.length > 0) {
               etat = "ACCEPTEE";
-              message = corps.messageId;
+              message = corps.id;
             } else {
               code = "REPONSE_INCOMPLETE";
             }
-          } else if (resultat.status === 400 && corps?.code === "duplicate_parameter") {
-            // Brevo confirme que cette clé a déjà été traitée ; ne pas renvoyer cet e-mail.
-            etat = "ACCEPTEE";
-            code = "DOUBLON_ACCEPTE";
+          } else if (resultat.status === 409 && corps?.name === "invalid_idempotent_request") {
+            // Un contenu modifié sous une clé existante demande une vérification manuelle.
+            etat = "A_VERIFIER";
+            code = "CONFLIT_IDEMPOTENCE";
           }
         }
       } catch (_) {

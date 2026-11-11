@@ -1,46 +1,45 @@
 # Sports spaces backend and configuration
 
-## Brevo subscription emails — implementation started 2026-11-11
+## Resend subscription emails — implementation started 2026-11-11
 
-The user replaced mobile push with Brevo transactional email. No mobile notification SDK, Firebase setup, public provider App ID, device alias or notification permission is required. Supabase remains the backend and Auth provider. This feature does not change Supabase Auth's existing email configuration.
+Resend replaces Brevo after phone verification blocked its API key. Supabase remains the database, Auth and worker backend. The earlier mobile-push integration was removed. This feature does not change Supabase Auth email configuration.
 
-Backend preparation is deployed as of 2026-11-11. The user asked to continue while Brevo SMS verification is stuck. No tests, worker invocation, app build or email send was performed. The existing merge baseline still has duplicate sports routes, missing shared-role helpers and mismatched preview/connected sports interfaces; those earlier problems are outside this provider replacement.
+Backend preparation is deployed as of 2026-11-11. No tests, worker invocation, app build or email send was performed. Existing merge issues in sports routes, shared-role helpers and preview/connected interfaces remain outside this provider replacement.
 
 | Component | Current preparation state |
 | --- | --- |
-| Brevo account / sender | Account created; the chosen sender is verified in Brevo. Phone verification is blocking API-key generation. The user approved a key restricted to transactional email; no key has been generated yet. |
-| Notification migration | Applied as `20261111030309_notifications_espaces_brevo`; local filename matches hosted history. |
+| Resend account / key | Account created; approved key “FitLife subscription emails” created with Sending access. Stored in ignored backend configuration and Supabase secrets. |
+| Sender / recipients | `onboarding@resend.dev`; restricted to the Resend account email. No owned domain is configured. |
+| Notification migration | Applied as `20261111030309_notifications_espaces_brevo`; retained unchanged because it is already hosted history. Its private queue is provider-independent. |
 | Scheduler prerequisites | Applied as `20261111030615_preparer_planification_notifications`; pg_cron and pg_net enabled. |
-| Email worker | `espaces-notifications` deployed; latest observed function version 2. |
-| Backend settings | Sender email/name, worker secret and `BREVO_SENDING_ENABLED=false` stored in Supabase. `BREVO_API_KEY` is still pending. |
-| Vault / cron | Worker URL and scoped worker secret stored in Vault. `fitlife-notifications-espaces` exists with a one-minute schedule and **active=false**. |
-| Delivery | Disabled both by the worker's sending flag and the inactive cron job. No email or test request was sent. |
+| Email worker | Resend implementation deployed as `espaces-notifications`; deployment returned ACTIVE version 4. Later secret changes may advance its version. |
+| Backend settings | Resend key, sender settings, restricted recipient, worker secret and `EMAIL_SENDING_ENABLED=false` configured. Unused Brevo settings removed. |
+| Vault / cron | Worker URL and scoped worker secret stored in Vault. One-minute `fitlife-notifications-espaces` job confirmed **active=false**. |
+| Delivery | Disabled by both the worker flag and inactive cron. Runtime delivery remains unverified. |
 
-Read-only metadata confirms queue RLS is enabled, no anon/authenticated table grants exist, and the three worker RPCs are executable by service_role but not anon/authenticated. This is configuration inspection, not behavioral acceptance. Temporary secret-bearing setup files were removed; the primary backend env file remains ignored.
+Read-only metadata previously confirmed queue RLS, no anon/authenticated table grants, and service-only execution of the three worker RPCs. This is configuration inspection, not behavioral acceptance. Private credentials must never enter Flutter, source control or documentation.
 
 ### Configuration and activation
 
-1. Create/use a Brevo account and configure a verified sending address or authenticated sending domain.
-2. Set backend secrets `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME` (defaults to FitLife), `BREVO_SENDING_ENABLED` and a strong random `NOTIFICATIONS_WORKER_SECRET`. Use an API key, not an SMTP password. Keep `BREVO_SENDING_ENABLED=false` during preparation. Templates contain variable names only. No provider credential belongs in Flutter or root client `.env`.
-3. For a new environment, apply `notifications_espaces_brevo` and `preparer_planification_notifications` through the established migration workflow. They are already applied to FitLife. They add the private outbox, subscription-insert trigger, service-only worker RPCs and scheduler extensions. The earlier uncommitted push migration was never applied and was replaced; do not replay hosted history.
-4. Deploy `functions/espaces-notifications`. Its gateway JWT check is disabled because the scheduler endpoint uses a dedicated `x-worker-secret` check; clients cannot choose email recipients or message contents. Only the server uses the Supabase service-role credential.
-5. For a new environment, enable pg_cron and pg_net and create the two Vault entries `fitlife_notifications_url` and `fitlife_notifications_secret`. Execute [the scheduler setup](tasks/planifier_notifications.sql) to create a one-minute job **inactive**. These preparation steps are complete on FitLife. After the Brevo key is configured and delivery is ready, set `BREVO_SENDING_ENABLED=true` and explicitly activate the named job using the command at the end of that file.
-6. Verify the actual sender, recipient, delivery and failure paths later using [the plan](../../Fit%20Life%20Docs/PLANS.md). Tests and live emails remain deferred at the user's request.
+1. Backend settings: `RESEND_API_KEY`, `RESEND_SENDER_EMAIL`, `RESEND_SENDER_NAME` (defaults to FitLife), `RESEND_ALLOWED_RECIPIENT`, `EMAIL_SENDING_ENABLED` and `NOTIFICATIONS_WORKER_SECRET`. Keep sending false during preparation. The checked-in template contains no credentials.
+2. Without an owned domain, use `onboarding@resend.dev` and set `RESEND_ALLOWED_RECIPIENT` to the account email in private configuration. The worker requires this restriction for a resend.dev sender; other recipients are skipped as `IGNOREE` / `DESTINATAIRE_RESTREINT`. This mode cannot deliver subscription emails to other users.
+3. For delivery to real users, verify an owned sending domain in Resend, replace the sender and remove the account-only restriction. Prepare and review this change before enabling automatic processing.
+4. Both notification/scheduler migrations are already applied to FitLife. Preserve their historical filenames. In a new environment, apply them through the migration workflow; do not replay hosted history.
+5. Deploy `functions/espaces-notifications`. Gateway JWT verification is disabled because the endpoint authenticates `x-worker-secret`; only the server uses the service-role credential. Clients cannot select recipients or message contents.
+6. Vault entries `fitlife_notifications_url` and `fitlife_notifications_secret` and [the inactive scheduler](tasks/planifier_notifications.sql) are configured. When delivery is ready and activation is authorized, set `EMAIL_SENDING_ENABLED=true` and activate the named job using the script's final command.
+7. Verify sender, eligibility, retries and actual delivery later using [the plan](../../Fit%20Life%20Docs/PLANS.md). Tests and live sends remain deferred at the user's request.
 
 ### Delivery behavior
 
-A successful subscription transaction queues one confirmation. The scheduler queues one reminder per active subscription/end date three days before expiry, using Africa/Tunis dates. Confirmations are valid for 24 hours; reminders are valid only on the three-day reminder date. Existing subscriptions receive no retroactive confirmation, but may receive eligible reminders after activation.
+A committed subscription queues one confirmation. The scheduler queues one reminder per active subscription/end date three days before expiry, using Africa/Tunis dates. Confirmations are valid for 24 hours; reminders only on the reminder date. Existing subscriptions receive no retroactive confirmation.
 
-The worker derives the recipient from `auth.users` using the subscription's owner and requires a confirmed email and active profile. Addresses never come from a Flutter request or editable profile field. The worker rechecks subscription/profile/date eligibility just before sending; cancelled, expired and changed-date events are excluded. The email includes space/offer, validity dates and the subscription's stored amount as plain text. It does not auto-create Brevo marketing contacts or use mailing campaigns.
+Recipients come from confirmed `auth.users` emails belonging to active profiles. The worker rechecks subscription/profile/date eligibility before sending. Emails contain space, offer, validity dates and stored amount as plain text. No marketing contacts or campaigns are created.
 
-Private queue rows are locked/claimed with a five-minute lease in batches of at most 20. Network/provider failures do not roll back the subscription. Events retain a stable UUID passed as `headers.idempotencyKey` in the Brevo JSON payload. Brevo's documented deduplication window is only 30 minutes. To avoid blindly resending an email after that window, automatic retries stop 25 minutes after the first claimed attempt and move the event to `A_VERIFIER`; reconcile it in Brevo before manually deciding what to do. Failures inside that window retry after 15 minutes.
+The private queue uses five-minute leases and batches of at most 20. Provider failures do not roll back subscriptions. The event UUID becomes the Resend `Idempotency-Key` HTTP header. Resend retains keys for 24 hours. The existing migration conservatively stops retries after 25 minutes from the first attempt and moves unresolved events to `A_VERIFIER`; failures within that window retry after 15 minutes. This shorter policy is retained without rewriting applied migrations.
 
-Brevo `messageId` responses and idempotency `duplicate_parameter` responses mark the event `ACCEPTEE`. This means provider acceptance, not inbox delivery. Invalidated events become `IGNOREE`. The queue stores status codes and provider message IDs, not recipient addresses or entire provider responses. There is no delivery-webhook, unsubscribe/preferences UI or marketing-message implementation in this first step.
+A successful response with an `id` marks `ACCEPTEE`, meaning provider acceptance, not inbox delivery. A 409 `invalid_idempotent_request` becomes `A_VERIFIER`; it is not success. Invalidated/restricted events become `IGNOREE`. The queue stores codes and provider IDs, not recipient addresses or complete provider responses. Delivery webhooks and preferences UI are deferred.
 
-The worker sends no emails unless `BREVO_SENDING_ENABLED=true`, its credentials are configured and an authorized invocation occurs. The cron job is currently inactive. Flutter dependency resolution completed after removing the push SDK; no tests, app build or live send were performed.
-
-References: [transactional sending](https://developers.brevo.com/docs/send-a-transactional-email), [API reference](https://developers.brevo.com/reference/send-transac-email), [idempotency and its window](https://developers.brevo.com/docs/heterogenous-versions-batch-emails).
-
+References: [Resend sending API](https://resend.com/docs/api-reference/emails/send-email), [idempotency](https://resend.com/docs/dashboard/emails/idempotency-keys), [account-only resend.dev sending](https://resend.com/docs/knowledge-base/403-error-resend-dev-domain), [verified domains](https://resend.com/docs/dashboard/domains/introduction).
 
 Implementation snapshot: 2026-11-03, based on branch `espaces-sportifs`, commit `26fc6c1` plus the current uncommitted integration changes.
 
