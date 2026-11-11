@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:coach_app/core/theme/app_theme.dart';
 import 'package:coach_app/core/utils/alertes.dart';
 import 'package:coach_app/core/utils/outils.dart';
+import 'package:coach_app/core/widgets/bouton_principal.dart';
+import 'package:coach_app/core/widgets/en_tete_diagonal.dart';
+import 'package:coach_app/core/widgets/formulaire.dart';
 import 'package:coach_app/features/entrainement/data/models/enums.dart';
 import 'package:coach_app/features/entrainement/data/models/programme.dart';
 import 'package:coach_app/features/entrainement/data/models/seance.dart';
@@ -28,11 +32,13 @@ class _SeanceFormScreenState extends State<SeanceFormScreen> {
   SeanceRepository seanceRepository = SeanceRepository();
   ProgrammeRepository programmeRepository = ProgrammeRepository();
 
+  // Date et heures : controllers, car les sélecteurs écrivent dans le champ.
+  final TextEditingController dateController = TextEditingController();
+  final TextEditingController debutController = TextEditingController();
+  final TextEditingController finController = TextEditingController();
+
   String titre = '';
   String description = '';
-  String dateTexte = '';
-  String heureDebutTexte = '';
-  String heureFinTexte = '';
   String capaciteTexte = '';
   String prixTexte = '';
 
@@ -40,6 +46,8 @@ class _SeanceFormScreenState extends State<SeanceFormScreen> {
   StatutSeance statut = StatutSeance.PLANIFIEE;
   int? idProgramme;
   List<Programme> programmes = [];
+
+  bool enCours = false;
 
   @override
   void initState() {
@@ -50,9 +58,9 @@ class _SeanceFormScreenState extends State<SeanceFormScreen> {
 
       titre = seance.titre;
       description = seance.description ?? '';
-      dateTexte = afficherDate(seance.date);
-      heureDebutTexte = seance.debutCourt;
-      heureFinTexte = seance.finCourt;
+      dateController.text = afficherDate(seance.date);
+      debutController.text = seance.debutCourt;
+      finController.text = seance.finCourt;
       capaciteTexte = seance.capacite?.toString() ?? '';
       prixTexte = seance.prix == 0 ? '' : seance.prix.toString();
       type = seance.type;
@@ -61,6 +69,14 @@ class _SeanceFormScreenState extends State<SeanceFormScreen> {
     }
 
     chargerProgrammes();
+  }
+
+  @override
+  void dispose() {
+    dateController.dispose();
+    debutController.dispose();
+    finController.dispose();
+    super.dispose();
   }
 
   Future<void> chargerProgrammes() async {
@@ -138,6 +154,64 @@ class _SeanceFormScreenState extends State<SeanceFormScreen> {
     return null;
   }
 
+  // Calendrier : écrit la date choisie (jj/mm/aaaa) dans le champ.
+  Future<void> choisirDate() async {
+    DateTime maintenant = DateTime.now();
+    DateTime aujourdhui =
+    DateTime(maintenant.year, maintenant.month, maintenant.day);
+
+    // Nouvelle séance : le calendrier commence à aujourd'hui.
+    DateTime premiere = widget.seance == null ? aujourdhui : DateTime(2000);
+    DateTime initiale = lireDate(dateController.text) ?? aujourdhui;
+
+    if (initiale.isBefore(premiere)) {
+      initiale = premiere;
+    }
+
+    DateTime? choisie = await showDatePicker(
+      context: context,
+      initialDate: initiale,
+      firstDate: premiere,
+      lastDate: DateTime(2100),
+    );
+
+    if (choisie != null) {
+      dateController.text = afficherDate(choisie);
+    }
+  }
+
+  // Horloge : écrit l'heure choisie (hh:mm) dans le champ.
+  Future<void> choisirHeure(TextEditingController controller) async {
+    TimeOfDay initiale = TimeOfDay.now();
+    String? texte = lireHeure(controller.text);
+
+    if (texte != null) {
+      List<String> parties = texte.split(':');
+      initiale = TimeOfDay(
+        hour: int.parse(parties[0]),
+        minute: int.parse(parties[1]),
+      );
+    }
+
+    TimeOfDay? choisie = await showTimePicker(
+      context: context,
+      initialTime: initiale,
+      // Format 24 h, comme dans le champ.
+      builder: (contexte, enfant) {
+        return MediaQuery(
+          data: MediaQuery.of(contexte).copyWith(alwaysUse24HourFormat: true),
+          child: enfant!,
+        );
+      },
+    );
+
+    if (choisie != null) {
+      String heure = choisie.hour.toString().padLeft(2, '0');
+      String minute = choisie.minute.toString().padLeft(2, '0');
+      controller.text = '$heure:$minute';
+    }
+  }
+
   Future<void> enregistrer() async {
     if (!formKey.currentState!.validate()) {
       return;
@@ -150,9 +224,9 @@ class _SeanceFormScreenState extends State<SeanceFormScreen> {
       return;
     }
 
-    DateTime date = lireDate(dateTexte)!;
-    String heureDebut = lireHeure(heureDebutTexte)!;
-    String heureFin = lireHeure(heureFinTexte)!;
+    DateTime date = lireDate(dateController.text)!;
+    String heureDebut = lireHeure(debutController.text)!;
+    String heureFin = lireHeure(finController.text)!;
 
     if (heureFin.compareTo(heureDebut) <= 0) {
       afficherAlerteErreur(
@@ -176,6 +250,10 @@ class _SeanceFormScreenState extends State<SeanceFormScreen> {
       prix = double.parse(prixTexte.trim().replaceAll(',', '.'));
     }
 
+    setState(() {
+      enCours = true;
+    });
+
     try {
       // Métier 4 : vérification des conflits avant l'enregistrement.
       // Une séance annulée libère son créneau : pas de vérification.
@@ -189,6 +267,10 @@ class _SeanceFormScreenState extends State<SeanceFormScreen> {
 
         if (conflit != null) {
           if (mounted) {
+            setState(() {
+              enCours = false;
+            });
+
             afficherAlerteErreur(
               context,
               titre: 'Créneau déjà occupé',
@@ -232,6 +314,10 @@ class _SeanceFormScreenState extends State<SeanceFormScreen> {
       }
     } catch (erreur) {
       if (mounted) {
+        setState(() {
+          enCours = false;
+        });
+
         afficherAlerteErreur(
           context,
           titre: 'Enregistrement impossible',
@@ -241,46 +327,49 @@ class _SeanceFormScreenState extends State<SeanceFormScreen> {
     }
   }
 
-  Widget titreSection(String texte) {
-    return Container(
-      margin: const EdgeInsets.only(top: 12),
-      child: Text(
-        texte,
-        style: const TextStyle(fontSize: 18),
-      ),
+  Widget boutonCalendrier() {
+    return IconButton(
+      icon: const Icon(Icons.calendar_month),
+      tooltip: 'Choisir une date',
+      onPressed: choisirDate,
     );
   }
 
+  Widget boutonHorloge(TextEditingController controller) {
+    return IconButton(
+      icon: const Icon(Icons.schedule),
+      tooltip: 'Choisir une heure',
+      onPressed: () => choisirHeure(controller),
+    );
+  }
+
+  // Individuelle / Collective : bouton segmenté (un seul choix).
   Widget choixType() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ElevatedButton(
-          onPressed: () {
-            setState(() {
-              type = TypeSeance.INDIVIDUELLE;
-            });
-          },
-          child: Text(
-            type == TypeSeance.INDIVIDUELLE
-                ? '✓ Individuelle'
-                : 'Individuelle',
-          ),
+    return SegmentedButton<TypeSeance>(
+      segments: const [
+        ButtonSegment(
+          value: TypeSeance.INDIVIDUELLE,
+          label: Text('Individuelle'),
+          icon: Icon(Icons.person),
         ),
-        Container(
-          margin: const EdgeInsets.only(left: 10),
-          child: ElevatedButton(
-            onPressed: () {
-              setState(() {
-                type = TypeSeance.COLLECTIVE;
-              });
-            },
-            child: Text(
-              type == TypeSeance.COLLECTIVE ? '✓ Collective' : 'Collective',
-            ),
-          ),
+        ButtonSegment(
+          value: TypeSeance.COLLECTIVE,
+          label: Text('Collective'),
+          icon: Icon(Icons.groups),
         ),
       ],
+      selected: {type},
+      showSelectedIcon: false,
+      expandedInsets: EdgeInsets.zero,
+      style: SegmentedButton.styleFrom(
+        selectedBackgroundColor: AppCouleurs.principale,
+        selectedForegroundColor: Colors.white,
+      ),
+      onSelectionChanged: (selection) {
+        setState(() {
+          type = selection.first;
+        });
+      },
     );
   }
 
@@ -310,179 +399,206 @@ class _SeanceFormScreenState extends State<SeanceFormScreen> {
     }
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 12,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: options.map((valeur) {
-            String libelle = libelleStatutSeance(valeur);
-
-            return ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  statut = valeur;
-                });
-              },
-              child: Text(statut == valeur ? '✓ $libelle' : libelle),
-            );
-          }).toList(),
+        ChoixPuces<StatutSeance>(
+          items: options,
+          estChoisi: (valeur) => statut == valeur,
+          libelle: (valeur) => libelleStatutSeance(valeur),
+          onChoisi: (valeur) {
+            setState(() {
+              statut = valeur;
+            });
+          },
         ),
-        Container(
-          margin: const EdgeInsets.only(top: 8),
-          child: Text(
-            note,
-            style: const TextStyle(fontSize: 13, color: Colors.grey),
-          ),
-        ),
+        NoteInfo(texte: note),
       ],
     );
   }
 
   // Programme facultatif : on choisit parmi ceux du coach.
   Widget choixProgramme() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        ElevatedButton(
-          onPressed: () {
-            setState(() {
-              idProgramme = null;
-            });
-          },
-          child: Text(idProgramme == null ? '✓ Aucun' : 'Aucun'),
-        ),
-        ...programmes.map((programme) {
-          bool choisi = idProgramme == programme.id;
+    // null = "Aucun programme".
+    List<Programme?> options = [null, ...programmes];
 
-          return ElevatedButton(
-            onPressed: () {
-              setState(() {
-                idProgramme = programme.id;
-              });
-            },
-            child: Text(choisi ? '✓ ${programme.nom}' : programme.nom),
-          );
-        }),
-      ],
+    return ChoixPuces<Programme?>(
+      items: options,
+      estChoisi: (programme) => idProgramme == programme?.id,
+      libelle: (programme) => programme?.nom ?? 'Aucun',
+      onChoisi: (programme) {
+        setState(() {
+          idProgramme = programme?.id;
+        });
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    bool ajout = widget.seance == null;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.seance == null ? 'Ajouter séance' : 'Modifier séance',
-        ),
-      ),
-      body: Container(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: formKey,
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 40),
-            children: [
-              // Un seul Column : espacement régulier entre tous les champs.
-              Column(
-                spacing: 16,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextFormField(
-                    initialValue: titre,
-                    decoration: const InputDecoration(labelText: 'Titre'),
-                    onChanged: (value) {
-                      titre = value;
-                    },
-                    validator: validerTitre,
-                  ),
-                  TextFormField(
-                    initialValue: description,
-                    decoration:
-                    const InputDecoration(labelText: 'Description'),
-                    onChanged: (value) {
-                      description = value;
-                    },
-                  ),
-                  titreSection('Date et horaire'),
-                  TextFormField(
-                    initialValue: dateTexte,
-                    keyboardType: TextInputType.datetime,
-                    decoration: const InputDecoration(
-                      labelText: 'Date (jj/mm/aaaa)',
-                    ),
-                    onChanged: (value) {
-                      dateTexte = value;
-                    },
-                    validator: validerDate,
-                  ),
-                  TextFormField(
-                    initialValue: heureDebutTexte,
-                    keyboardType: TextInputType.datetime,
-                    decoration: const InputDecoration(
-                      labelText: 'Heure de début (hh:mm)',
-                    ),
-                    onChanged: (value) {
-                      heureDebutTexte = value;
-                    },
-                    validator: validerHeure,
-                  ),
-                  TextFormField(
-                    initialValue: heureFinTexte,
-                    keyboardType: TextInputType.datetime,
-                    decoration: const InputDecoration(
-                      labelText: 'Heure de fin (hh:mm)',
-                    ),
-                    onChanged: (value) {
-                      heureFinTexte = value;
-                    },
-                    validator: validerHeure,
-                  ),
-                  titreSection('Type'),
-                  choixType(),
-                  if (type == TypeSeance.COLLECTIVE)
-                    TextFormField(
-                      initialValue: capaciteTexte,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Capacité (nombre de places)',
-                      ),
-                      onChanged: (value) {
-                        capaciteTexte = value;
-                      },
-                      validator: validerCapacite,
-                    ),
-                  TextFormField(
-                    initialValue: prixTexte,
-                    keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'Prix en DT (vide = gratuit)',
-                    ),
-                    onChanged: (value) {
-                      prixTexte = value;
-                    },
-                    validator: validerPrix,
-                  ),
-                  if (widget.seance != null) ...[
-                    titreSection('Statut'),
-                    choixStatut(),
-                  ],
-                  titreSection('Programme (facultatif)'),
-                  choixProgramme(),
-                  Container(
-                    margin: const EdgeInsets.only(top: 20),
-                    child: ElevatedButton(
-                      onPressed: enregistrer,
-                      child: const Text('Enregistrer'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          EnTeteDiagonal(
+            titre: ajout ? 'Nouvelle séance' : 'Modifier la séance',
+            icone: Icons.fitness_center,
+            retour: true,
+            hauteur: 160,
           ),
-        ),
+          // Largeur limitée : le formulaire reste lisible sur grand écran.
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      CarteSection(
+                        titre: 'Informations',
+                        icone: Icons.info_outline,
+                        enfants: [
+                          TextFormField(
+                            initialValue: titre,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: decorationChamp(
+                              'Titre de la séance',
+                              icone: Icons.title,
+                            ),
+                            onChanged: (value) {
+                              titre = value;
+                            },
+                            validator: validerTitre,
+                          ),
+                          TextFormField(
+                            initialValue: description,
+                            minLines: 2,
+                            maxLines: 4,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: decorationChamp(
+                              'Description (facultatif)',
+                              icone: Icons.notes,
+                            ),
+                            onChanged: (value) {
+                              description = value;
+                            },
+                          ),
+                        ],
+                      ),
+                      CarteSection(
+                        titre: 'Date et horaire',
+                        icone: Icons.event,
+                        enfants: [
+                          TextFormField(
+                            controller: dateController,
+                            keyboardType: TextInputType.datetime,
+                            decoration: decorationChamp(
+                              'Date (jj/mm/aaaa)',
+                              icone: Icons.calendar_today,
+                              action: boutonCalendrier(),
+                            ),
+                            validator: validerDate,
+                          ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            spacing: 12,
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: debutController,
+                                  keyboardType: TextInputType.datetime,
+                                  decoration: decorationChamp(
+                                    'Début (hh:mm)',
+                                    action: boutonHorloge(debutController),
+                                  ),
+                                  validator: validerHeure,
+                                ),
+                              ),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: finController,
+                                  keyboardType: TextInputType.datetime,
+                                  decoration: decorationChamp(
+                                    'Fin (hh:mm)',
+                                    action: boutonHorloge(finController),
+                                  ),
+                                  validator: validerHeure,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      CarteSection(
+                        titre: 'Type et tarif',
+                        icone: Icons.groups_outlined,
+                        enfants: [
+                          choixType(),
+                          if (type == TypeSeance.COLLECTIVE)
+                            TextFormField(
+                              initialValue: capaciteTexte,
+                              keyboardType: TextInputType.number,
+                              decoration: decorationChamp(
+                                'Capacité',
+                                icone: Icons.event_seat_outlined,
+                                suffixe: 'places',
+                              ),
+                              onChanged: (value) {
+                                capaciteTexte = value;
+                              },
+                              validator: validerCapacite,
+                            )
+                          else
+                            const NoteInfo(
+                              texte: 'Séance individuelle : une seule place.',
+                            ),
+                          TextFormField(
+                            initialValue: prixTexte,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: decorationChamp(
+                              'Prix',
+                              icone: Icons.payments_outlined,
+                              suffixe: 'DT',
+                              aide: 'Vide = gratuit',
+                            ),
+                            onChanged: (value) {
+                              prixTexte = value;
+                            },
+                            validator: validerPrix,
+                          ),
+                        ],
+                      ),
+                      if (!ajout)
+                        CarteSection(
+                          titre: 'Statut',
+                          icone: Icons.flag_outlined,
+                          enfants: [choixStatut()],
+                        ),
+                      CarteSection(
+                        titre: 'Programme (facultatif)',
+                        icone: Icons.event_note,
+                        enfants: [choixProgramme()],
+                      ),
+                      const SizedBox(height: 8),
+                      BoutonPrincipal(
+                        texte: ajout ? 'Créer la séance' : 'Enregistrer',
+                        enChargement: enCours,
+                        onPressed: enregistrer,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
