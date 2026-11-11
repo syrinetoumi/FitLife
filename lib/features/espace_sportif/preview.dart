@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 import 'presentation/espaces_sportifs_screen.dart';
+import 'presentation/donnees_apercu.dart';
 
 void main() => runApp(const ApercuEspacesSportifs());
 
@@ -13,6 +14,6 @@ class ApercuEspacesSportifs extends StatelessWidget {
     title: 'FitLife · Espaces sportifs',
     debugShowCheckedModeBanner: false,
     theme: construireTheme(),
-    routes: {'/': (context) => const EspacesSportifsScreen()},
+    routes: {'/': (context) => EspacesSportifsScreen(donnees: DonneesApercu())},
   );
 }

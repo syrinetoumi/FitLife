@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:coach_app/core/utils/outils.dart';
 import 'package:coach_app/features/auth/presentation/utilisateur_list_screen.dart';
-import 'package:coach_app/features/espace_sportif/presentation/espaces_sportifs_screen.dart';
 import 'package:coach_app/navigation_bas_screen.dart';
+import 'features/espace_sportif/presentation/notifications_screen.dart';
 
 // Écran d'accueil principal (HomeScreen)
 // Page par défaut à l'ouverture de l'application
@@ -353,6 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
+          const ClocheNotifications(),
           // Raccourci vers les utilisateurs pour l'Admin
           if (admin)
             IconButton(
@@ -381,56 +382,9 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
 
-          // Bouton switch pour basculer Admin / Athlète en 1 clic
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  basculerModeAdmin();
-                });
-                afficherMessage(
-                  context,
-                  estUtilisateurAdmin()
-                      ? 'Mode Administrateur activé'
-                      : 'Mode Athlète activé',
-                );
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: admin ? Colors.purple.shade100 : Colors.blue.shade100,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: admin ? Colors.purple : Colors.blue,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      admin ? '👑 Admin' : '🏃 Athlète',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: admin
-                            ? Colors.purple.shade900
-                            : Colors.blue.shade900,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.swap_horiz,
-                      size: 14,
-                      color:
-                      admin ? Colors.purple.shade900 : Colors.blue.shade900,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            child: Chip(label: Text(libelleRoleUtilisateur())),
           ),
         ],
       ),
@@ -601,7 +555,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
 
-          // GESTION 3 : NOS ESPACES SPORTIFS (photo espaces sportif.jpg) -> Accède directement à EspacesSportifsScreen !
+          // GESTION 3 : espaces connectés aux données persistantes.
           carteModulePhoto(
             context: context,
             titre: 'Nos Espaces Sportifs',
@@ -616,7 +570,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ouvrirModule(
                 context: context,
                 route: '/espaces',
-                ecranDirect: const EspacesSportifsScreen(),
                 nomModule: 'Espaces Sportifs',
               );
             },

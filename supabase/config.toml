@@ -3,6 +3,6 @@ project_id = "fitlife"
 [functions.espaces-localisation]
 verify_jwt = false
 
-# Worker réservé au planificateur, authentifié par x-worker-secret.
+# Worker authentifié par x-worker-secret ; boîte personnelle authentifiée par Supabase Auth.
 [functions.espaces-notifications]
 verify_jwt = false

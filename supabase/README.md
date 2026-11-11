@@ -1,5 +1,27 @@
 # Sports spaces backend and configuration
 
+## Current notifications — Novu, confirmation only (2026-11-11)
+
+Novu replaces the earlier email integration. The only notification is **“Votre souscription est confirmée.”** It appears in FitLife's bell/inbox on the home and connected sports screens. Opening the bell loads the signed-in user's inbox; tapping an unread message marks it read. The badge refreshes after subscription/reading, on app resume and every 30 seconds while foregrounded. The inbox lists the latest 50 messages and provides refresh/retry controls. Notification delivery may complete shortly after the subscription; refresh the inbox if needed.
+
+- The Development workflow `fitlife-subscription-confirmed` is created, active, tagged `fitlife-confirmation`, with one in-app step and no email, push, SMS or expiry steps.
+- The approved Novu key is stored in ignored backend configuration and Supabase secrets. `NOVU_API_URL=https://api.novu.co`, `NOVU_WORKFLOW_ID=fitlife-subscription-confirmed` and `NOVU_ENABLED=true` are configured. Flutter receives no Novu credential.
+- Applied migration `20261111070018_notifications_novu_confirmation` adds the server-owned recipient, replaces queue processing with confirmations only and stops creation of expiry reminders. Pending events from the previous provider are marked ignored; no old subscription confirmations are replayed.
+- `espaces-notifications` is deployed with explicit Supabase Auth verification for inbox/sync/read actions. It derives the subscriber ID from the validated JWT and requires an active profile. The scheduler uses its separate worker secret. Private queue/RPC access remains service-only.
+- The one-minute scheduler `fitlife-notifications-espaces` is enabled for confirmation processing. Successful subscriptions request an immediate owner-scoped sync; provider failures leave committed subscriptions intact and the scheduler retries. Stable UUIDs are used as both Novu idempotency headers and transaction IDs; the existing conservative 25-minute retry cutoff remains.
+- The home sports card now opens `/espaces` with `EspacesConnectesScreen`, rather than directly creating a local preview. `EspacesSportifsScreen` requires an explicit data source, preventing accidental default demo data. The separate preview entry point remains explicit and is outside normal app navigation.
+- Runtime tests, live test notifications and application launches were not performed for this Novu setup, at the user's request. Earlier API test records below concern the previous provider and do not validate Novu. Restart the app after changing from the already-open demo screen.
+
+Inbox reader correction (2026-11-11): the deployed adapter accepts both a direct `data` list and a nested `data.data` list for Novu inbox responses, and normalizes count envelopes. Previously, a valid direct list could be rejected as malformed and displayed as unavailable. Diagnostic logs contain only fixed error codes/statuses, never subscriber IDs or notification content. No test notifications were sent for this correction.
+
+Configuration template: [functions/.env.example](functions/.env.example). Provider reference: [Novu API](https://docs.novu.co/api-reference), [current OpenAPI contract](https://api.novu.co/openapi.json), [idempotency](https://docs.novu.co/api-reference/idempotency).
+
+## Manual API data preparation
+
+Data preparation update (2026-11-11): at the user's request, [ajouter_donnees_espaces.sql](tasks/ajouter_donnees_espaces.sql) added eight randomly named fictional spaces, five offers per space across all 13 spaces (65 added offers; 52 active), 52 equipment rows and missing weekly opening hours. It filled missing coordinates/contact fields without changing existing names, owners or statuses. City/neighborhood addresses are searchable public references; coordinates are reused test landmarks, not verified fictional-business locations. A free one-day offer is included per space. No subscriptions, notifications or external API calls were created by the data script. The script is repeatable and belongs to manual data preparation, not migration history.
+
+## Historical email preparation — superseded by Novu
+
 ## Resend subscription emails — implementation started 2026-11-11
 
 Resend replaces Brevo after phone verification blocked its API key. Supabase remains the database, Auth and worker backend. The earlier mobile-push integration was removed. This feature does not change Supabase Auth email configuration.
@@ -18,6 +40,14 @@ Backend preparation is deployed as of 2026-11-11. No tests, worker invocation, a
 | Delivery | Disabled by both the worker flag and inactive cron. Runtime delivery remains unverified. |
 
 Read-only metadata previously confirmed queue RLS, no anon/authenticated table grants, and service-only execution of the three worker RPCs. This is configuration inspection, not behavioral acceptance. Private credentials must never enter Flutter, source control or documentation.
+
+### Verification update — 2026-11-11
+
+The user subsequently requested API tests and approved one test email. Hosted geocoding returned HTTP 200 with five public-place results. Walking, cycling and driving routes returned HTTP 200 with positive distance/duration and route geometry using an explicit public starting point. Unauthenticated calls returned 401 and athlete geocoding returned 403. The repeatable check is [check_location_apis.py](../scripts/check_location_apis.py); it uses ignored test-account credentials and logs no tokens or account addresses.
+
+One direct Resend API test returned HTTP 200; the authenticated Resend dashboard showed **Delivered** for “FitLife — API connection test.” The sending-only key correctly refuses email-status reads, so dashboard access supplied delivery evidence. An authenticated worker request still returned HTTP 503 with sending disabled. Automatic sending and cron remain disabled. This test does not establish subscription-trigger/reminder delivery acceptance.
+
+Both existing location-dialog widget tests passed (automatic initial calculation and denied-permission recovery). Device GPS, browser permission prompts and an actual device position were not exercised. Location permission is requested only by the estimate action; external map/directions links do not request FitLife location access. A destination needs coordinates, and connected data must be loaded for the estimate button to be available.
 
 ### Configuration and activation
 

@@ -29,6 +29,6 @@ select cron.alter_job(jobid, active := false)
 from cron.job where jobname='fitlife-notifications-espaces';
 commit;
 
--- Après configuration Brevo et autorisation de l'envoi :
+-- Après configuration Novu et déploiement du worker de confirmation uniquement :
 -- select cron.alter_job(jobid, active := true)
 -- from cron.job where jobname='fitlife-notifications-espaces';

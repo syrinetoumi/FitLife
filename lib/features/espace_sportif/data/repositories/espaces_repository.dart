@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../presentation/donnees_apercu.dart' show DonneesApercu;
 import '../models/modeles_espaces.dart';
 import '../metier/valeurs_metier.dart';
+import '../services/notifications_service.dart';
 
 const joursServeur = [
   'LUNDI',
@@ -311,6 +312,11 @@ class EspacesRepository extends DonneesApercu {
   Future<void> souscrire(OffreApercu offre) async {
     _verifierConnexion();
     await client.rpc('souscrire_offre', params: {'p_offre': offre.id});
+    try {
+      await NotificationsService(client).synchroniser();
+    } catch (_) {
+      // La souscription est déjà validée. Le planificateur reprendra la notification.
+    }
     await _rechargerApresEcriture();
   }
 
