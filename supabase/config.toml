@@ -2,3 +2,7 @@ project_id = "fitlife"
 
 [functions.espaces-localisation]
 verify_jwt = false
+
+# Worker réservé au planificateur, authentifié par x-worker-secret.
+[functions.espaces-notifications]
+verify_jwt = false
