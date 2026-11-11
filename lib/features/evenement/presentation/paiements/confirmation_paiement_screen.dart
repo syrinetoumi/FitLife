@@ -1,13 +1,6 @@
 import 'package:flutter/material.dart';
-
 import '../../data/models/paiement_evenement.dart';
-import '../../../../core/utils/outils.dart';
 
-// ================================================================
-// MÉTIER 3 — Dernière étape du parcours : CONFIRMATION.
-// Écran simple (StatelessWidget) : il ne fait qu'afficher
-// le récapitulatif inscription + paiement + la référence.
-// ================================================================
 class ConfirmationPaiementScreen extends StatelessWidget {
   final PaiementEvenement paiement;
   final String nomEvenement;
@@ -25,100 +18,35 @@ class ConfirmationPaiementScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // BRIGHT RED BACKGROUND
       appBar: AppBar(
-        title: const Text('Confirmation'),
+        title: const Text('CONFIRMATION', style: TextStyle(color: Colors.black)),
+        backgroundColor: Colors.white,
       ),
-      body: Container(
-        padding: const EdgeInsets.all(16),
-        child: ListView(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // MESSAGE DE SUCCÈS
-            Card(
-              color: Colors.green,
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                child: const Column(
-                  children: [
-                    Icon(
-                      Icons.check_circle,
-                      color: Colors.white,
-                      size: 50,
-                    ),
-                    Text(
-                      'Inscription confirmée !',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                      ),
-                    ),
-                    Text(
-                      'Votre paiement a bien été enregistré',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // RÉCAPITULATIF INSCRIPTION
-            Card(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Votre inscription',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                    Text(nomEvenement),
-                    Text('Catégorie : $nomCategorie'),
-                    Text('Athlète : $idAthlete'),
-                  ],
-                ),
-              ),
-            ),
-
-            // RÉCAPITULATIF PAIEMENT
-            Card(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Votre paiement',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                    Text(
-                      '${paiement.montant.toStringAsFixed(2)} DT',
-                      style: const TextStyle(fontSize: 20),
-                    ),
-                    Text('Date : ${afficherDate(paiement.datePaiement)}'),
-                    Text('Méthode : ${paiement.methodeToString()}'),
-                    Text('Statut : ${paiement.statutToString()}'),
-                    Text('Référence : ${paiement.reference}'),
-                  ],
-                ),
-              ),
-            ),
-
+            const Icon(Icons.check_circle, color: Colors.black, size: 100),
+            const SizedBox(height: 20),
             const Text(
-              'Conservez votre référence : elle vous sera '
-                  'demandée le jour de l’événement.',
+              'PAYMENT CONFIRMED!',
+              style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.black),
             ),
-
-            // BOUTON TERMINER
-            Container(
-              margin: const EdgeInsets.only(top: 24, bottom: 20),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('Terminer'),
-              ),
-            ),
+            const SizedBox(height: 20),
+            Text('Event: $nomEvenement', style: const TextStyle(fontSize: 20, color: Colors.black)),
+            Text('Category: $nomCategorie', style: const TextStyle(fontSize: 20,color: Colors.black)),
+            Text('Athlete: $idAthlete', style: const TextStyle(fontSize: 20,color: Colors.black)),
+            const SizedBox(height: 10),
+            Text('Amount: ${paiement.montant} DT', style: const TextStyle(fontSize: 20,color: Colors.black)),
+            Text('Reference: ${paiement.reference}', style: const TextStyle(fontSize: 20,color: Colors.black)),
+            const SizedBox(height: 40),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Finish'),
+            )
           ],
         ),
       ),

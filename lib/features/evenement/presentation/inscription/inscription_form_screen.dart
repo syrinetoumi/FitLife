@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// Votre fichier est dans features/evenement/presentation/inscription/
-// ../../          = remonte jusqu'à evenement/
-// ../../data/...  = les modèles et repositories sont sous data/
 import '../../data/models/categorie.dart';
 import '../../data/models/evenement.dart';
 import '../../data/models/inscription.dart';
@@ -14,6 +11,7 @@ import '../../domain/eligibilite_checker.dart';
 import '../../domain/capacite_checker.dart';
 import '../../../../core/utils/outils.dart';
 import '../paiements/paiement_form_screen.dart';
+import '../widgets/recaptcha_widget.dart';
 
 class InscriptionFormScreen extends StatefulWidget {
   final Inscription? inscription;
@@ -37,23 +35,23 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
   InscriptionRepository inscriptionRepository = InscriptionRepository();
 
   List<Evenement> evenements = [];
-  // La catégorie de l'événement choisi (UNE seule, car chaque
-  // événement possède sa catégorie via evenements.id_categorie).
   List<Categorie> categories = [];
 
   String idAthlete = '';
   String idEvenement = '';
   String idCategorie = '';
 
-  // METIER 1 : informations de l'athlète à vérifier.
+  // MÉTIER 1 : informations de l'athlète à vérifier.
   String ageTexte = '';
   NiveauCategorie niveauAthlete = NiveauCategorie.debutant;
 
-  // METIER 1 : places encore disponibles pour l'événement choisi
-  // (-1 = pas encore calculé).
+  // MÉTIER 1 : places encore disponibles (-1 = pas encore calculé).
   int placesRestantes = -1;
 
   StatutInscription statut = StatutInscription.enAttente;
+
+  // 📌 SÉCURITÉ ANTI-BOT GOOGLE reCAPTCHA
+  bool captchaValide = false;
 
   @override
   void initState() {
@@ -61,13 +59,14 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
 
     if (widget.inscription != null) {
       Inscription inscription = widget.inscription!;
-
       idAthlete = inscription.idAthlete;
       idEvenement = inscription.idEvenement;
       idCategorie = inscription.idCategorie;
       ageTexte = inscription.ageAthlete.toString();
       niveauAthlete = inscription.niveauAthlete;
       statut = inscription.statut;
+      // En modification, pas besoin de redemander le captcha
+      captchaValide = true;
     } else if (widget.evenementInitial != null) {
       idEvenement = widget.evenementInitial!.idEvenement;
       idCategorie = widget.evenementInitial!.idCategorie;
@@ -80,15 +79,12 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     try {
       List<Evenement> resultat = await evenementRepository.getEvenements();
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         evenements = resultat;
       });
 
-      // En modification ou pré-sélection : charger la catégorie et compter les places.
       if (idEvenement.isNotEmpty) {
         for (Evenement e in evenements) {
           if (e.idEvenement == idEvenement) {
@@ -104,8 +100,6 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     }
   }
 
-  // La catégorie de l'événement est unique : on la retrouve dans le
-  // catalogue et on la présélectionne automatiquement.
   Future<void> chargerCategorieEvenement(Evenement evenement) async {
     try {
       List<Categorie> toutes = await categorieRepository.getCategories();
@@ -117,15 +111,12 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
         }
       }
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         categories = [];
         if (trouvee != null) {
           categories.add(trouvee);
-          // Présélection automatique (la seule possible).
           idCategorie = trouvee.idCategorie;
         }
       });
@@ -136,20 +127,15 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     }
   }
 
-  // METIER 1 : compter les places restantes de l'événement choisi.
   Future<void> compterPlaces(Evenement evenement) async {
     try {
-      List<Inscription> liste =
-      await inscriptionRepository.getInscriptionsByEvenement(
+      List<Inscription> liste = await inscriptionRepository.getInscriptionsByEvenement(
         evenement.idEvenement,
       );
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
-        // Règle métier du fichier domain/eligibilite_checker.dart
         placesRestantes = evenement.capacite - compterPlacesPrises(liste);
       });
     } catch (erreur) {
@@ -159,20 +145,13 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     }
   }
 
-  // METIER 3 : retrouver l'inscription fraîchement créée dans une
-  // liste, pour connaître son id généré par Supabase
-  // (le paiement en a besoin : relation inscription → paiement).
-  Inscription? retrouverInscriptionCreee(
-      List<Inscription> liste,
-      Inscription cible,
-      ) {
+  Inscription? retrouverInscriptionCreee(List<Inscription> liste, Inscription cible) {
     for (Inscription inscription in liste) {
       if (inscription.idAthlete == cible.idAthlete &&
           inscription.idCategorie == cible.idCategorie) {
         return inscription;
       }
     }
-
     return null;
   }
 
@@ -180,18 +159,14 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     if (value == null || value.trim().isEmpty) {
       return 'Athlète obligatoire';
     }
-
     return null;
   }
 
-  // Même principe que validerAge de CategorieFormScreen.
   String? validerAge(String? value) {
     int? age = int.tryParse(value ?? '');
-
     if (age == null || age < 0 || age > 120) {
       return 'Âge invalide';
     }
-
     return null;
   }
 
@@ -208,18 +183,20 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     if (idCategorie.isEmpty || categories.isEmpty) {
       afficherMessage(
         context,
-        'Cet événement n’a pas de catégorie : modifiez l’événement '
-            'pour lui en affecter une.',
+        'Cet événement n’a pas de catégorie : modifiez l’événement pour lui en affecter une.',
       );
       return;
     }
 
-    // ================================================================
-    // METIER 1 — INSCRIPTION INTELLIGENTE
-    // Les règles viennent de domain/eligibilite_checker.dart.
-    // ================================================================
+    // 📌 CONTRÔLE SÉCURITÉ GOOGLE reCAPTCHA (Nouvelle inscription)
+    if (widget.inscription == null && !captchaValide) {
+      afficherMessage(
+        context,
+        'Sécurité : Veuillez valider la case « Je ne suis pas un robot »',
+      );
+      return;
+    }
 
-    // Retrouver l'événement choisi et sa catégorie.
     Evenement evenement = evenements.first;
     for (Evenement e in evenements) {
       if (e.idEvenement == idEvenement) {
@@ -227,63 +204,44 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
       }
     }
 
-    // La catégorie de l'événement est unique : c'est la première.
     Categorie categorie = categories.first;
 
-    // Vérifications 1 et 2 : UNIQUEMENT à la création.
-    // (Une inscription existante garde sa place, même si l'événement
-    // est devenu complet ou terminé entre-temps.)
+    // MÉTIER 1 : Vérifications 1 & 2
     if (widget.inscription == null) {
-      // Vérification 1 : statut de l'événement.
       if (!evenementOuvert(evenement)) {
         afficherMessage(
           context,
-          'Inscriptions fermées : cet événement est '
-              '${evenement.statut.name.toUpperCase()}',
+          'Inscriptions fermées : cet événement est ${evenement.statut.name.toUpperCase()}',
         );
         return;
       }
 
-      // Vérification 2 : nombre de places (recompté au moment du clic).
       try {
-        List<Inscription> liste = await inscriptionRepository
-            .getInscriptionsByEvenement(idEvenement);
-
+        List<Inscription> liste = await inscriptionRepository.getInscriptionsByEvenement(idEvenement);
         if (!placeDisponible(evenement, liste)) {
-          afficherMessage(
-            context,
-            'Événement complet : plus de place disponible',
-          );
+          afficherMessage(context, 'Événement complet : plus de place disponible');
           return;
         }
       } catch (erreur) {
-        if (mounted) {
-          afficherMessage(context, 'Vérification impossible : $erreur');
-        }
+        if (mounted) afficherMessage(context, 'Vérification impossible : $erreur');
         return;
       }
     }
 
-    // Vérifications 3 et 4 : TOUJOURS (création ET modification),
-    // car l'âge et le niveau restent modifiables dans le formulaire.
-
-    // Vérification 3 : âge de l'athlète dans la catégorie.
+    // MÉTIER 1 : Vérifications 3 & 4
     int age = int.parse(ageTexte);
     if (!ageEligible(categorie, age)) {
       afficherMessage(
         context,
-        'Âge non éligible : la catégorie « ${categorie.nom} » '
-            'accepte de ${categorie.ageMin} à ${categorie.ageMax} ans',
+        'Âge non éligible : la catégorie « ${categorie.nom} » accepte de ${categorie.ageMin} à ${categorie.ageMax} ans',
       );
       return;
     }
 
-    // Vérification 4 : niveau de l'athlète = niveau de la catégorie.
     if (!niveauEligible(categorie, niveauAthlete)) {
       afficherMessage(
         context,
-        'Niveau requis pour « ${categorie.nom} » : '
-            '${categorie.niveau.name.toUpperCase()}',
+        'Niveau requis pour « ${categorie.nom} » : ${categorie.niveau.name.toUpperCase()}',
       );
       return;
     }
@@ -303,20 +261,9 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
       if (widget.inscription == null) {
         await inscriptionRepository.ajouter(inscription);
 
-        // ========================================================
-        // METIER 3 et 4 : on relit les inscriptions de
-        // l'événement (les deux en ont besoin).
-        // ========================================================
-        List<Inscription> liste = await inscriptionRepository
-            .getInscriptionsByEvenement(idEvenement);
+        List<Inscription> liste = await inscriptionRepository.getInscriptionsByEvenement(idEvenement);
 
-        // --------------------------------------------------------
-        // METIER 4 — GESTION DE CAPACITÉ
-        // Le nombre maximal de participants est atteint :
-        // l'événement passe automatiquement à COMPLET et la
-        // vérification 1 du MEtier 1 bloquera les nouvelles
-        // inscriptions.
-        // --------------------------------------------------------
+        // MÉTIER 4 : Capacité max atteinte => bascule automatique à COMPLET
         if (capaciteAtteinte(evenement, liste)) {
           Evenement complet = Evenement(
             idEvenement: evenement.idEvenement,
@@ -332,32 +279,24 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
             statut: StatutEvenement.complet,
             idCategorie: evenement.idCategorie,
           );
-
           await evenementRepository.modifier(complet);
 
           if (mounted) {
             afficherMessage(
               context,
-              'La dernière place vient d’être prise : '
-                  'l’événement est désormais COMPLET.',
+              'La dernière place vient d’être prise : l’événement est désormais COMPLET.',
             );
           }
         }
 
-        // --------------------------------------------------------
-        // METIER 3 : si l'athlète choisit "CONFIRMEE", redirection directe vers le PAIEMENT.
-        // Si "EN_ATTENTE", l'inscription est au panier sans paiement immédiat.
-        // --------------------------------------------------------
+        // MÉTIER 3 : si confirmée => redirection vers PAIEMENT
         if (statut == StatutInscription.confirmee) {
           Inscription? creee = retrouverInscriptionCreee(liste, inscription);
-
           if (creee != null && mounted) {
             await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PaiementFormScreen(
-                  inscriptionChoisie: creee,
-                ),
+                builder: (context) => PaiementFormScreen(inscriptionChoisie: creee),
               ),
             );
           }
@@ -373,27 +312,22 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
         await inscriptionRepository.modifier(inscription);
       }
 
-      if (mounted) {
-        Navigator.pop(context);
-      }
+      if (mounted) Navigator.pop(context);
     } catch (erreur) {
-      if (mounted) {
-        afficherMessage(context, 'Enregistrement impossible : $erreur');
-      }
+      if (mounted) afficherMessage(context, 'Enregistrement impossible : $erreur');
     }
   }
 
   Widget titreSection(String texte) {
     return Container(
-      margin: const EdgeInsets.only(top: 20, bottom: 8),
-      child: Text(
-        texte,
-        style: const TextStyle(fontSize: 18),
-      ),
-    );
-  }
+        margin: const EdgeInsets.only(top: 20, bottom: 8),
+          child: Text(
+            texte,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        );
+    }
 
-  // Affiche l'événement déjà sélectionné (l'athlète ne le change pas en cours de route).
   Widget evenementSelectionne() {
     Evenement? evt;
     for (Evenement e in evenements) {
@@ -405,7 +339,7 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     evt ??= widget.evenementInitial;
 
     String nom = evt?.nom ?? 'Événement sélectionné';
-    String statut = evt != null ? evt.statut.name.toUpperCase() : 'OUVERT';
+    String statutEvt = evt != null ? evt.statut.name.toUpperCase() : 'OUVERT';
     int capacite = evt?.capacite ?? 0;
 
     return Card(
@@ -444,7 +378,7 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                statut,
+                statutEvt,
                 style: TextStyle(
                   color: Colors.green.shade800,
                   fontWeight: FontWeight.bold,
@@ -458,7 +392,6 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     );
   }
 
-  // METIER 1 : affiche les places restantes de l'événement choisi.
   Widget cartePlaces() {
     if (idEvenement.isEmpty || placesRestantes < 0) {
       return Container();
@@ -489,30 +422,20 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     );
   }
 
-  // ================================================================
-  // METIER 2 — VÉRIFICATION AUTOMATIQUE DE L'ÉLIGIBILITÉ
-  // La catégorie de l'événement (unique) est présélectionnée et
-  // affiche EN DIRECT "Éligible" (vert) ou la raison du refus
-  // (rouge), grâce à domain/eligibilite_checker.dart.
-  // ================================================================
+  // MÉTIER 2 — Calcul d'éligibilité en direct à la frappe
   Widget choixCategorie() {
     if (idEvenement.isEmpty) {
       return const Text('Choisissez d’abord un événement.');
     }
 
     if (categories.isEmpty) {
-      return const Text(
-        'Cet événement n’a pas de catégorie : modifiez l’événement.',
-      );
+      return const Text('Cet événement n’a pas de catégorie : modifiez l’événement.');
     }
 
-    // Âge saisi (null tant que le champ est vide ou invalide).
     int? ageSaisi = int.tryParse(ageTexte);
-
     Categorie categorie = categories.first;
     bool choisie = idCategorie == categorie.idCategorie;
 
-    // METIER 2 : calcul automatique pour la catégorie de l'événement.
     bool eligible = false;
     if (ageSaisi != null) {
       eligible = categorieEligible(categorie, ageSaisi, niveauAthlete);
@@ -528,33 +451,25 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
               choisie ? '✓ ${categorie.nom}' : categorie.nom,
               style: const TextStyle(fontSize: 17),
             ),
-            Text('Âge : ${categorie.ageMin} - ${categorie.ageMax}'),
+            Text('Âge : ${categorie.ageMin} - ${categorie.ageMax} ans'),
             Text('Niveau : ${categorie.niveau.name.toUpperCase()}'),
-
-            // METIER 2 : verdict automatique en direct.
             if (ageSaisi != null)
               Text(
-                eligible ? '✅ Éligible'
-                    : '❌ ${messageEligibilite(
-                    categorie, ageSaisi, niveauAthlete)}',
+                eligible ? '✅ Éligible' : '❌ ${messageEligibilite(categorie, ageSaisi, niveauAthlete)}',
                 style: TextStyle(
                   fontSize: 15,
                   color: eligible ? Colors.green : Colors.red,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-
             if (ageSaisi == null)
-              const Text(
-                'Saisissez votre âge pour voir l’éligibilité',
-              ),
+              const Text('Saisissez votre âge pour voir l’éligibilité'),
           ],
         ),
       ),
     );
   }
 
-  // METIER 1 : choix du niveau de l'athlète.
-  // Même GridView.builder que choixStatut() (Chapitre 4).
   Widget choixNiveauAthlete() {
     return GridView.builder(
       shrinkWrap: true,
@@ -582,8 +497,6 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     );
   }
 
-  // Choix du statut : uniquement EN_ATTENTE et CONFIRMEE.
-  // ANNULEE est déplacée dans le panier, et REFUSEE est retirée.
   Widget choixStatut() {
     final List<StatutInscription> statutsDisponibles = [
       StatutInscription.confirmee,
@@ -621,9 +534,7 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.inscription == null
-              ? 'Nouvelle inscription'
-              : 'Modifier inscription',
+          widget.inscription == null ? 'Nouvelle inscription' : 'Modifier inscription',
         ),
       ),
       body: Container(
@@ -631,7 +542,6 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
         child: Form(
           key: formKey,
           child: ListView(
-            // Garde tous les champs construits (voir evenement_form_screen).
             cacheExtent: 3000,
             padding: const EdgeInsets.only(bottom: 40),
             children: [
@@ -654,11 +564,8 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
               TextFormField(
                 initialValue: ageTexte,
                 keyboardType: TextInputType.number,
-                decoration:
-                const InputDecoration(labelText: 'Âge de l’athlète'),
+                decoration: const InputDecoration(labelText: 'Âge de l’athlète'),
                 onChanged: (value) {
-                  // METIER 2 : setState pour redessiner la carte
-                  // catégorie à chaque touche (verdict en direct).
                   setState(() {
                     ageTexte = value;
                   });
@@ -669,11 +576,27 @@ class _InscriptionFormScreenState extends State<InscriptionFormScreen> {
               choixNiveauAthlete(),
               titreSection('Statut de l’inscription'),
               choixStatut(),
+
+              // 📌 CONTRÔLE DE SÉCURITÉ GOOGLE reCAPTCHA (Nouvelle Inscription)
+              if (widget.inscription == null) ...[
+                titreSection('Contrôle de sécurité anti-bot'),
+                RecaptchaWidget(
+                  onVerifie: (valide) {
+                    setState(() {
+                      captchaValide = valide;
+                    });
+                  },
+                ),
+              ],
+
               Container(
                 margin: const EdgeInsets.only(top: 35, bottom: 20),
                 child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
                   onPressed: enregistrer,
-                  child: const Text('Enregistrer'),
+                  child: const Text('Enregistrer', style: TextStyle(fontSize: 16)),
                 ),
               ),
             ],
