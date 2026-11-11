@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 enum ReglagePosition { application, localisation }
@@ -15,27 +16,32 @@ class ErreurPosition implements Exception {
 class PositionAppareilService {
   // Une seule lecture à la demande, sans suivi ni stockage de la position.
   Future<Position> obtenir() async {
-    if (!await Geolocator.isLocationServiceEnabled()) {
-      throw const ErreurPosition(
-        'Activez la localisation du téléphone pour estimer le trajet.',
-        reglage: ReglagePosition.localisation,
-      );
-    }
-    // Une autorisation refusée définitivement se rétablit dans les réglages, pas par une nouvelle fenêtre de demande.
+    // Chaque estimation et chaque nouvelle tentative revérifient l’autorisation,
+    // même si la localisation du téléphone est désactivée.
     var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.unableToDetermine) {
       permission = await Geolocator.requestPermission();
     }
+    // Le système ne permet pas une nouvelle demande après un refus définitif.
     if (permission == LocationPermission.deniedForever) {
       throw const ErreurPosition(
-        'Autorisez la localisation de FitLife dans les réglages de l’application.',
-        reglage: ReglagePosition.application,
+        kIsWeb
+            ? 'Autorisez la localisation dans les permissions de ce site, à côté de la barre d’adresse, puis appuyez sur Réessayer.'
+            : 'Autorisez la localisation de FitLife dans les réglages de l’application.',
+        reglage: kIsWeb ? null : ReglagePosition.application,
       );
     }
     if (permission != LocationPermission.whileInUse &&
         permission != LocationPermission.always) {
       throw const ErreurPosition(
-        'La localisation est nécessaire pour calculer le trajet depuis votre position.',
+        'La localisation est nécessaire pour calculer le trajet. Appuyez sur Réessayer pour demander à nouveau l’autorisation.',
+      );
+    }
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      throw const ErreurPosition(
+        'Activez la localisation du téléphone pour estimer le trajet.',
+        reglage: ReglagePosition.localisation,
       );
     }
     // Le délai limite l’attente lorsque le téléphone ne reçoit pas de position GPS exploitable.

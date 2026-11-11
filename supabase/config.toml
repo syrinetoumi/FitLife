@@ -2,3 +2,7 @@ project_id = "fitlife"
 
 [functions.espaces-localisation]
 verify_jwt = false
+
+# Worker authentifié par x-worker-secret ; boîte personnelle authentifiée par Supabase Auth.
+[functions.espaces-notifications]
+verify_jwt = false

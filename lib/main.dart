@@ -12,7 +12,6 @@ import 'navigation_bas_screen.dart';
 import 'navigation_onglets_screen.dart';
 import 'features/evenement/presentation/paiements/paiement_list_screen.dart';
 import 'features/entrainement/presentation/entrainement_screen.dart';
-import 'features/espace_sportif/presentation/espaces_sportifs_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/register_screen.dart';
@@ -66,7 +65,6 @@ class MyApp extends StatelessWidget {
         '/bas': (context) => const NavigationBasScreen(),
         '/connexion': (context) => const LoginScreen(),
         '/entrainement': (context) => const EntrainementScreen(),
-        '/espaces': (context) => const EspacesSportifsScreen(),
         '/nutrition': (context) => NutritionNavigationScreen(
               idAthlete: Supabase.instance.client.auth.currentUser?.id ?? 'demo-athlete-id',
             ),

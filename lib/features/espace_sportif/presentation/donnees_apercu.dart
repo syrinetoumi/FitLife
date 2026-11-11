@@ -1,92 +1,13 @@
 import 'package:flutter/material.dart';
 
-// Données locales de présentation, indépendantes des modèles Supabase.
-class EspaceApercu {
-  EspaceApercu({
-    required this.id,
-    required this.nom,
-    required this.type,
-    required this.adresse,
-    required this.description,
-    this.statut = 'INACTIF',
-    this.telephone = '',
-    this.email = '',
-    this.siteWeb = '',
-    this.latitude,
-    this.longitude,
-    this.estGere = true,
-  });
+import '../data/models/modeles_espaces.dart';
+import '../data/metier/valeurs_metier.dart';
+import '../data/metier/abonnements_metier.dart';
 
-  final int id;
-  String nom, type, adresse, description, statut, telephone, email, siteWeb;
-  double? latitude, longitude;
-  final bool estGere;
-}
-
-class EquipementApercu {
-  EquipementApercu(
-      this.id,
-      this.espace,
-      this.nom,
-      this.description,
-      this.quantite,
-      this.etat,
-      );
-  final int id, espace;
-  String nom, description, etat;
-  int quantite;
-}
-
-class HoraireApercu {
-  HoraireApercu(this.espace, this.jour, this.debut, this.fin);
-  final int espace, jour;
-  final int debut, fin;
-}
-
-class OffreApercu {
-  OffreApercu({
-    required this.id,
-    required this.espace,
-    required this.nom,
-    required this.description,
-    required this.type,
-    required this.millimes,
-    required this.duree,
-    required this.debut,
-    this.fin,
-    this.statut = 'INACTIVE',
-  });
-  final int id, espace;
-  String nom, description, type, statut;
-  int millimes, duree;
-  DateTime debut;
-  DateTime? fin;
-
-  String get statutEffectif =>
-      fin != null && jourLocal().isAfter(fin!) ? 'EXPIREE' : statut;
-  bool get disponible =>
-      statutEffectif == 'ACTIVE' && !jourLocal().isBefore(debut);
-}
-
-class AbonnementApercu {
-  AbonnementApercu({
-    required this.id,
-    required this.offre,
-    required this.athlete,
-    required this.estPersonnel,
-    required this.debut,
-    required this.fin,
-    required this.millimes,
-    this.statut = 'ACTIF',
-  });
-  final int id, offre, millimes;
-  final String athlete;
-  final bool estPersonnel;
-  final DateTime debut, fin;
-  String statut;
-  String get statutEffectif =>
-      statut != 'ANNULE' && jourLocal().isAfter(fin) ? 'EXPIRE' : statut;
-}
+export '../data/models/modeles_espaces.dart';
+export '../data/metier/valeurs_metier.dart';
+export '../data/metier/offres_metier.dart';
+export '../data/metier/abonnements_metier.dart';
 
 const typesEspace = {
   'SALLE': 'Salle de sport',
@@ -119,40 +40,6 @@ const jours = [
   'Dimanche',
 ];
 
-DateTime jourLocal() {
-  // L'aperçu utilise la date locale. Le serveur fournira la date métier.
-  final date = DateTime.now();
-  return DateTime(date.year, date.month, date.day);
-}
-
-String dateTexte(DateTime date) =>
-    '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
-String dateSaisie(DateTime date) =>
-    '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-DateTime? lireDateApercu(String texte) {
-  if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(texte)) return null;
-  final date = DateTime.tryParse(texte);
-  return date != null && dateSaisie(date) == texte ? date : null;
-}
-
-int? lireMillimes(String texte) {
-  final normalise = texte.trim().replaceAll(',', '.');
-  if (!RegExp(r'^\d{1,9}(\.\d{1,3})?$').hasMatch(normalise)) return null;
-  final parties = normalise.split('.');
-  return int.parse(parties.first) * 1000 +
-      (parties.length == 2 ? int.parse(parties[1].padRight(3, '0')) : 0);
-}
-
-String montantTexte(int millimes) =>
-    '${millimes ~/ 1000},${(millimes % 1000).toString().padLeft(3, '0')}';
-String heureTexte(int minutes) =>
-    '${(minutes ~/ 60).toString().padLeft(2, '0')}:${(minutes % 60).toString().padLeft(2, '0')}';
-int? lireHeure(String texte) {
-  if (!RegExp(r'^([01]\d|2[0-3]):[0-5]\d$').hasMatch(texte)) return null;
-  final parties = texte.split(':');
-  return int.parse(parties[0]) * 60 + int.parse(parties[1]);
-}
-
 IconData iconeEspace(String type) => switch (type) {
   'PISCINE' => Icons.pool_outlined,
   'PARC' => Icons.park_outlined,
@@ -161,7 +48,8 @@ IconData iconeEspace(String type) => switch (type) {
 };
 
 class DonneesApercu extends ChangeNotifier {
-  DonneesApercu() {
+  DonneesApercu({bool exemple = true}) {
+    if (!exemple) return;
     final aujourdHui = jourLocal();
     espaces.addAll([
       EspaceApercu(
@@ -252,7 +140,7 @@ class DonneesApercu extends ChangeNotifier {
       AbonnementApercu(
         id: 11,
         offre: 8,
-        athlete: 'Votre compte démo',
+        athlete: 'Votre compte',
         estPersonnel: true,
         debut: aujourdHui.subtract(const Duration(days: 5)),
         fin: aujourdHui.add(const Duration(days: 24)),
@@ -261,7 +149,7 @@ class DonneesApercu extends ChangeNotifier {
       AbonnementApercu(
         id: 12,
         offre: 8,
-        athlete: 'Amine · Démonstration',
+        athlete: 'Amine',
         estPersonnel: false,
         debut: aujourdHui.subtract(const Duration(days: 10)),
         fin: aujourdHui.add(const Duration(days: 19)),
@@ -269,6 +157,65 @@ class DonneesApercu extends ChangeNotifier {
         statut: 'SUSPENDU',
       ),
     ]);
+  }
+
+  bool get demonstration => true;
+  String get role => 'GESTIONNAIRE_ESPACE';
+  bool get peutSouscrire => demonstration || role == 'ATHLETE';
+  bool get peutCreer => demonstration || role == 'GESTIONNAIRE_ESPACE';
+
+  Future<void> enregistrerEspace(
+    EspaceApercu valeur, {
+    bool nouveau = false,
+  }) async {
+    espaces.removeWhere((e) => e.id == valeur.id);
+    espaces.add(valeur);
+    actualiser();
+  }
+
+  Future<void> enregistrerEquipement(
+    EquipementApercu valeur, {
+    bool nouveau = false,
+  }) async {
+    equipements.removeWhere((e) => e.id == valeur.id);
+    equipements.add(valeur);
+    actualiser();
+  }
+
+  Future<void> enregistrerHoraire(
+    HoraireApercu valeur, {
+    HoraireApercu? ancien,
+  }) async {
+    horaires.remove(ancien);
+    horaires.add(valeur);
+    actualiser();
+  }
+
+  Future<void> supprimerHoraire(HoraireApercu valeur) async {
+    horaires.remove(valeur);
+    actualiser();
+  }
+
+  Future<void> enregistrerOffre(
+    OffreApercu valeur, {
+    bool nouveau = false,
+  }) async {
+    offres.removeWhere((o) => o.id == valeur.id);
+    offres.add(valeur);
+    actualiser();
+  }
+
+  Future<void> changerStatutEspace(EspaceApercu valeur, String statut) async {
+    valeur.statut = statut;
+    actualiser();
+  }
+
+  Future<void> changerStatutAbonnement(
+    AbonnementApercu valeur,
+    String statut,
+  ) async {
+    valeur.statut = statut;
+    actualiser();
   }
 
   final espaces = <EspaceApercu>[];
@@ -283,31 +230,12 @@ class DonneesApercu extends ChangeNotifier {
       espaces.firstWhere((e) => e.id == offre.espace);
   OffreApercu offreDe(AbonnementApercu abonnement) =>
       offres.firstWhere((o) => o.id == abonnement.offre);
-  bool dejaAbonne(OffreApercu offre) => abonnements.any(
-        (a) =>
-    a.estPersonnel &&
-        a.offre == offre.id &&
-        ['ACTIF', 'SUSPENDU'].contains(a.statutEffectif),
-  );
+  bool dejaAbonne(OffreApercu offre) =>
+      abonnementPersonnelExistant(abonnements, offre.id);
 
-  void souscrire(OffreApercu offre) {
-    if (!offre.disponible ||
-        espaceDe(offre).statut != 'ACTIF' ||
-        dejaAbonne(offre)) {
-      return;
-    }
-    final debut = jourLocal();
-    abonnements.add(
-      AbonnementApercu(
-        id: prochainId(),
-        offre: offre.id,
-        athlete: 'Votre compte démo',
-        estPersonnel: true,
-        debut: debut,
-        fin: debut.add(Duration(days: offre.duree - 1)),
-        millimes: offre.millimes,
-      ),
-    );
+  Future<void> souscrire(OffreApercu offre) async {
+    if (!souscriptionPossible(offre, espaceDe(offre), abonnements)) return;
+    abonnements.add(creerAbonnementDemonstration(offre, prochainId()));
     actualiser();
   }
 }
