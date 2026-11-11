@@ -3,6 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:coach_app/core/utils/alertes.dart';
 import 'package:coach_app/core/utils/outils.dart';
+import 'package:coach_app/core/widgets/bouton_principal.dart';
+import 'package:coach_app/core/widgets/en_tete_diagonal.dart';
+import 'package:coach_app/core/widgets/formulaire.dart';
 import 'package:coach_app/features/entrainement/data/models/enums.dart';
 import 'package:coach_app/features/entrainement/data/models/programme.dart';
 import 'package:coach_app/features/entrainement/data/repositories/programme_repository.dart';
@@ -24,14 +27,19 @@ class _ProgrammeFormScreenState extends State<ProgrammeFormScreen> {
 
   ProgrammeRepository programmeRepository = ProgrammeRepository();
 
+  // Les dates utilisent un controller : le sélecteur de calendrier
+  // doit pouvoir écrire dans le champ.
+  final TextEditingController dateDebutController = TextEditingController();
+  final TextEditingController dateFinController = TextEditingController();
+
   String nom = '';
   String description = '';
   String dureeTexte = '';
-  String dateDebutTexte = '';
-  String dateFinTexte = '';
 
   ObjectifProgramme objectif = ObjectifProgramme.PERTE_POIDS;
   Niveau niveau = Niveau.DEBUTANT;
+
+  bool enCours = false;
 
   @override
   void initState() {
@@ -47,13 +55,20 @@ class _ProgrammeFormScreenState extends State<ProgrammeFormScreen> {
       niveau = programme.niveau;
 
       if (programme.dateDebut != null) {
-        dateDebutTexte = afficherDate(programme.dateDebut!);
+        dateDebutController.text = afficherDate(programme.dateDebut!);
       }
 
       if (programme.dateFin != null) {
-        dateFinTexte = afficherDate(programme.dateFin!);
+        dateFinController.text = afficherDate(programme.dateFin!);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    dateDebutController.dispose();
+    dateFinController.dispose();
+    super.dispose();
   }
 
   String? validerNom(String? value) {
@@ -87,6 +102,30 @@ class _ProgrammeFormScreenState extends State<ProgrammeFormScreen> {
     return null;
   }
 
+  // Ouvre le calendrier et écrit la date choisie dans le champ.
+  Future<void> choisirDate(TextEditingController controller) async {
+    DateTime initiale = lireDate(controller.text) ?? DateTime.now();
+
+    DateTime? choisie = await showDatePicker(
+      context: context,
+      initialDate: initiale,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (choisie != null) {
+      controller.text = afficherDate(choisie);
+    }
+  }
+
+  Widget boutonCalendrier(TextEditingController controller) {
+    return IconButton(
+      icon: const Icon(Icons.calendar_month),
+      tooltip: 'Choisir une date',
+      onPressed: () => choisirDate(controller),
+    );
+  }
+
   Future<void> enregistrer() async {
     if (!formKey.currentState!.validate()) {
       return;
@@ -100,8 +139,8 @@ class _ProgrammeFormScreenState extends State<ProgrammeFormScreen> {
       return;
     }
 
-    DateTime? dateDebut = lireDate(dateDebutTexte);
-    DateTime? dateFin = lireDate(dateFinTexte);
+    DateTime? dateDebut = lireDate(dateDebutController.text);
+    DateTime? dateFin = lireDate(dateFinController.text);
 
     if (dateDebut != null && dateFin != null && dateFin.isBefore(dateDebut)) {
       afficherAlerteErreur(
@@ -124,6 +163,11 @@ class _ProgrammeFormScreenState extends State<ProgrammeFormScreen> {
       idCoach: widget.programme?.idCoach ?? utilisateur.id,
     );
 
+    // Bouton en chargement : évite le double clic.
+    setState(() {
+      enCours = true;
+    });
+
     try {
       if (widget.programme == null) {
         await programmeRepository.ajouter(programme);
@@ -136,6 +180,10 @@ class _ProgrammeFormScreenState extends State<ProgrammeFormScreen> {
       }
     } catch (erreur) {
       if (mounted) {
+        setState(() {
+          enCours = false;
+        });
+
         afficherAlerteErreur(
           context,
           titre: 'Enregistrement impossible',
@@ -145,157 +193,146 @@ class _ProgrammeFormScreenState extends State<ProgrammeFormScreen> {
     }
   }
 
-  Widget titreSection(String texte) {
-    return Container(
-      margin: const EdgeInsets.only(top: 12),
-      child: Text(
-        texte,
-        style: const TextStyle(fontSize: 18),
-      ),
-    );
-  }
-
-  // Choix de l'objectif : GridView.builder (Chapitre 4).
-  Widget choixObjectif() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: ObjectifProgramme.values.length,
-      itemBuilder: (context, index) {
-        ObjectifProgramme valeur = ObjectifProgramme.values[index];
-        String libelle = enTexte(valeur);
-
-        return ElevatedButton(
-          onPressed: () {
-            setState(() {
-              objectif = valeur;
-            });
-          },
-          child: Text(objectif == valeur ? '✓ $libelle' : libelle),
-        );
-      },
-    );
-  }
-
-  Widget choixNiveau() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: Niveau.values.length,
-      itemBuilder: (context, index) {
-        Niveau valeur = Niveau.values[index];
-        String libelle = enTexte(valeur);
-
-        return ElevatedButton(
-          onPressed: () {
-            setState(() {
-              niveau = valeur;
-            });
-          },
-          child: Text(niveau == valeur ? '✓ $libelle' : libelle),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    bool ajout = widget.programme == null;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.programme == null ? 'Ajouter programme' : 'Modifier programme',
-        ),
-      ),
-      body: Container(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: formKey,
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 40),
-            children: [
-              // Un seul Column : espacement régulier entre tous les champs.
-              Column(
-                spacing: 16,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextFormField(
-                    initialValue: nom,
-                    decoration: const InputDecoration(labelText: 'Nom'),
-                    onChanged: (value) {
-                      nom = value;
-                    },
-                    validator: validerNom,
-                  ),
-                  TextFormField(
-                    initialValue: description,
-                    decoration:
-                    const InputDecoration(labelText: 'Description'),
-                    onChanged: (value) {
-                      description = value;
-                    },
-                  ),
-                  TextFormField(
-                    initialValue: dureeTexte,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Durée (semaines)',
-                    ),
-                    onChanged: (value) {
-                      dureeTexte = value;
-                    },
-                    validator: validerDuree,
-                  ),
-                  titreSection('Objectif'),
-                  choixObjectif(),
-                  titreSection('Niveau'),
-                  choixNiveau(),
-                  titreSection('Dates (facultatif)'),
-                  TextFormField(
-                    initialValue: dateDebutTexte,
-                    keyboardType: TextInputType.datetime,
-                    decoration: const InputDecoration(
-                      labelText: 'Date de début (jj/mm/aaaa)',
-                    ),
-                    onChanged: (value) {
-                      dateDebutTexte = value;
-                    },
-                    validator: validerDateFacultative,
-                  ),
-                  TextFormField(
-                    initialValue: dateFinTexte,
-                    keyboardType: TextInputType.datetime,
-                    decoration: const InputDecoration(
-                      labelText: 'Date de fin (jj/mm/aaaa)',
-                    ),
-                    onChanged: (value) {
-                      dateFinTexte = value;
-                    },
-                    validator: validerDateFacultative,
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 20),
-                    child: ElevatedButton(
-                      onPressed: enregistrer,
-                      child: const Text('Enregistrer'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          EnTeteDiagonal(
+            titre: ajout ? 'Nouveau programme' : 'Modifier le programme',
+            icone: Icons.event_note,
+            retour: true,
+            hauteur: 160,
           ),
-        ),
+          // Largeur limitée : le formulaire reste lisible sur grand écran.
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      CarteSection(
+                        titre: 'Informations',
+                        icone: Icons.info_outline,
+                        enfants: [
+                          TextFormField(
+                            initialValue: nom,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: decorationChamp(
+                              'Nom du programme',
+                              icone: Icons.title,
+                            ),
+                            onChanged: (value) {
+                              nom = value;
+                            },
+                            validator: validerNom,
+                          ),
+                          TextFormField(
+                            initialValue: description,
+                            minLines: 2,
+                            maxLines: 4,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: decorationChamp(
+                              'Description (facultatif)',
+                              icone: Icons.notes,
+                            ),
+                            onChanged: (value) {
+                              description = value;
+                            },
+                          ),
+                          TextFormField(
+                            initialValue: dureeTexte,
+                            keyboardType: TextInputType.number,
+                            decoration: decorationChamp(
+                              'Durée',
+                              icone: Icons.timer_outlined,
+                              suffixe: 'semaines',
+                            ),
+                            onChanged: (value) {
+                              dureeTexte = value;
+                            },
+                            validator: validerDuree,
+                          ),
+                        ],
+                      ),
+                      CarteSection(
+                        titre: 'Objectif',
+                        icone: Icons.flag_outlined,
+                        enfants: [
+                          ChoixPuces<ObjectifProgramme>(
+                            items: ObjectifProgramme.values,
+                            estChoisi: (valeur) => objectif == valeur,
+                            libelle: (valeur) => enTexte(valeur),
+                            onChoisi: (valeur) {
+                              setState(() {
+                                objectif = valeur;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      CarteSection(
+                        titre: 'Niveau',
+                        icone: Icons.bar_chart,
+                        enfants: [
+                          ChoixPuces<Niveau>(
+                            items: Niveau.values,
+                            estChoisi: (valeur) => niveau == valeur,
+                            libelle: (valeur) => enTexte(valeur),
+                            onChoisi: (valeur) {
+                              setState(() {
+                                niveau = valeur;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      CarteSection(
+                        titre: 'Planning (facultatif)',
+                        icone: Icons.calendar_month,
+                        enfants: [
+                          TextFormField(
+                            controller: dateDebutController,
+                            keyboardType: TextInputType.datetime,
+                            decoration: decorationChamp(
+                              'Date de début (jj/mm/aaaa)',
+                              icone: Icons.play_circle_outline,
+                              action: boutonCalendrier(dateDebutController),
+                            ),
+                            validator: validerDateFacultative,
+                          ),
+                          TextFormField(
+                            controller: dateFinController,
+                            keyboardType: TextInputType.datetime,
+                            decoration: decorationChamp(
+                              'Date de fin (jj/mm/aaaa)',
+                              icone: Icons.stop_circle_outlined,
+                              action: boutonCalendrier(dateFinController),
+                            ),
+                            validator: validerDateFacultative,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      BoutonPrincipal(
+                        texte: ajout ? 'Créer le programme' : 'Enregistrer',
+                        enChargement: enCours,
+                        onPressed: enregistrer,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
